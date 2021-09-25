@@ -1,0 +1,190 @@
+---
+title: "Emmys"
+output: github_document
+---
+
+
+```{r setup, include = FALSE}
+library(tidytuesdayR)
+library(tidyverse)
+library(lubridate)
+library(purrr)
+library(rlang)
+library(fs)
+
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  out.width = "80%",
+  fig.align = "center"
+)
+```
+
+```{r}
+library(tidytuesdayR)
+library(tidyverse)
+library(lubridate)
+library(purrr)
+library(rlang)
+library(fs)
+```
+
+Download and save data into *rds* files.
+
+```{r}
+if(length(dir_ls(glob = "*.rds")) == 0) {
+  imap(
+    tt_load("2021-09-21"), 
+    ~ write_rds(.x, path(.y, ext = "rds"))
+  )}
+```
+
+Checking out the data set
+
+```{r}
+data_nominees <- read_rds("nominees.rds")
+
+glimpse(data_nominees)
+```
+
+Cursory plotting of the data revealed a data issue.  The number of nominees jump in 2,000's.  There another dip on 2,014.
+
+```{r}
+data_nominees %>% 
+  count(year) %>% 
+  ggplot(aes(year, n)) +
+  geom_col()
+```
+A quick count shows that we should use the data from 2,015 and after.
+
+```{r}
+data_nominees %>% 
+  count(year) %>% 
+  arrange(-year) %>% 
+  head(20)
+```
+
+Plotting the top 5 winning Distributors.  VH1 suddenly appears as a contender on 2,021
+
+```{r}
+data_nominees %>% 
+  filter(year >= 2015, type == "Winner") %>% 
+  count(year, distributor) %>% 
+  arrange(year, -n) %>% 
+  group_by(year) %>% 
+  mutate(rn = row_number()) %>% 
+  filter(rn <= 4) %>% 
+  ungroup() %>% 
+  ggplot() +
+  geom_col(aes(year, n, fill = distributor)) +
+  theme(legend.position = "bottom")
+```
+Pulling up the data for VH1 shows that there is an entry per Producer, thus inflating the number of "wins" that needs to be deduped.
+
+```{r}
+data_nominees %>% 
+  filter(year >= 2015, type == "Winner", distributor == "VH1") %>% 
+  select(category, title, production, year)
+```
+
+```{r}
+prep_winners <- data_nominees %>% 
+  filter(year >= 2015, type == "Winner") %>% 
+  mutate(
+    category = str_sub(category, 1, nchar(category) - 7),
+    category = str_to_title(category)
+    ) %>% 
+  group_by(category, title, year, distributor) %>% 
+  summarise(.groups = "drop") %>% 
+  ungroup() %>% 
+  arrange(category, title, year, distributor)
+
+glimpse(prep_winners)
+```
+
+```{r}
+prep_winners %>% 
+  count(year)
+```
+
+
+```{r}
+dist_winners <- prep_winners %>% 
+  count(year, distributor, sort = TRUE) %>% 
+  ungroup() %>% 
+  arrange(year, -n) %>% 
+  group_by(year) %>% 
+  mutate(
+    top = ifelse(row_number() <= 3, TRUE, FALSE),
+    distributor = ifelse(top, distributor, "Other")
+    ) %>% 
+  group_by(year, distributor) %>% 
+  summarise(wins = sum(n), .groups = "drop")
+
+dist_winners %>% 
+  ggplot() +
+  geom_col(aes(year, wins, fill = distributor))
+```
+
+```{r}
+prep_winners %>% 
+  filter(year == 2015, distributor == "Comedy Central") %>% 
+  count(title, sort = TRUE)
+```
+
+```{r}
+prep_winners %>% 
+  filter(year == 2020, distributor == "Pop TV") %>% 
+  count(title, sort = TRUE)
+```
+```{r}
+prep_winners %>% 
+  filter(year == 2016, distributor == "FX Networks") %>% 
+  count(title, sort = TRUE)
+```
+
+```{r}
+prep_winners %>% 
+  filter(year == 2019, distributor == "Prime Video") %>% 
+  count(title, sort = TRUE)
+```
+```{r}
+prep_winners %>% 
+  filter( distributor == "NBC") %>% 
+  count(year, title, sort = TRUE) %>% 
+  pivot_wider(names_from = "year", values_from = "n")
+```
+```{r}
+order_dist <- dist_winners %>% 
+  count(distributor) %>% 
+  arrange(n) %>% 
+  pull(distributor)
+
+order_dist
+```
+
+```{r}
+prep_winners %>% 
+  filter(year == 2021, distributor == "Disney+") %>% 
+  count(title, sort = TRUE)
+```
+
+
+```{r}
+prep_winners %>% 
+  filter(title == "The Mandalorian") %>% 
+  arrange(year)
+```
+
+
+```{r}
+dist_winners %>% 
+  #filter(distributor != "Other") %>% 
+  mutate(distributor = fct_relevel(distributor, order_dist)) %>% 
+  ggplot() +
+  geom_col(aes(year, wins, fill = distributor), position = position_stack()) 
+```
+
+
+
+
