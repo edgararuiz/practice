@@ -1,0 +1,27 @@
+---
+title: "Untitled"
+output: 
+  flexdashboard::flex_dashboard:
+    css: style.css
+    orientation: rows
+    horizontal_layout: fill
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+Row
+-----------------------------------------------------------------------
+
+###
+
+```{r}
+valueBox("This is a test")
+```
+
+Row 
+-----------------------------------------------------------------------
+
+### Chart B
