@@ -1,0 +1,76 @@
+
+```{r setup}
+#| include: false
+options(scipen = 100)
+library(tidyverse)
+library(tidymodels)
+library(ranger)
+library(rsample)
+```
+
+```{r}
+set.seed(100)
+iris_split <- initial_split(iris, prop = 1/3)
+
+iris_split
+```
+
+
+```{r}
+model <- ranger(Species ~ ., data = training(iris_split), probability = TRUE)
+```
+
+
+
+```{r}
+preds <- predict(model, testing(iris_split))
+
+tbl_iris <- testing(iris_split) %>% 
+  bind_cols(preds$predictions) %>% 
+  mutate(
+    versicolor_bin = case_when(
+      versicolor >= 0 & versicolor <= 0.1 ~ 0.1,
+      versicolor <= 0.2 ~ 0.2,
+      versicolor <= 0.3 ~ 0.3,
+      versicolor <= 0.4 ~ 0.4,
+      versicolor <= 0.5 ~ 0.5,
+      versicolor <= 0.6 ~ 0.6,
+      versicolor <= 0.7 ~ 0.7,
+      versicolor <= 0.8 ~ 0.8,
+      versicolor <= 0.9 ~ 0.9,
+      TRUE ~ 1
+    ),
+    is_versicolor = ifelse(Species == "versicolor", 1, 0)
+  )
+
+tbl_iris
+```
+
+```{r}
+iris_bins <- tbl_iris %>% 
+  group_by(versicolor_bin) %>% 
+  summarise(
+    versicolors = sum(is_versicolor),
+    total = n()
+  ) %>% 
+  mutate(percent = versicolors / total) %>% 
+  filter(total > 1)
+
+iris_bins
+```
+
+```{r}
+iris_bins %>% 
+  ggplot(aes(versicolor_bin, percent)) +
+  geom_segment(x = 0, y = 0, xend = 1, yend = 1, linetype = 2, color = "blue") +
+  geom_line(color = "orange") +
+  geom_point(color = "orange") +
+  theme_minimal()
+```
+
+
+
+
+
+
+

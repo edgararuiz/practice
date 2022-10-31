@@ -1,0 +1,131 @@
+
+```{r setup}
+#| include: false
+options(scipen = 100)
+library(tidyverse)
+library(tidymodels)
+```
+
+
+```{r}
+set.seed(100)
+
+table_size <- 10000
+
+coin_tosses <- tibble(
+  toss = seq_len(table_size),
+  is_heads = sample(c(0,1), table_size, replace = TRUE)
+)
+
+coin_tosses %>% 
+  count(is_heads)
+```
+```{r}
+set.seed(999)
+
+table_size <- 20000
+
+coin_tosses2 <- tibble(
+  toss = seq_len(table_size),
+  is_heads = sample(c(0,1), table_size, replace = TRUE)
+)
+
+coin_tosses2 %>% 
+  count(is_heads)
+```
+
+
+```{r}
+model <- glm(is_heads ~ toss, data = coin_tosses, family = "binomial")
+```
+
+
+```{r}
+preds <- coin_tosses2 %>% 
+  mutate(
+    prob = predict(model, coin_tosses2, type = "response"),
+    pred_heads  = ifelse(prob >= 0.5, 1, 0),
+    positive = ifelse(pred_heads == is_heads, 1, 0)
+    ) 
+  
+
+preds
+```
+```{r}
+preds %>% 
+  ggplot() +
+  geom_line(aes(toss, prob))
+```
+
+```{r}
+pred_table <- preds %>% 
+  mutate(prob = round(prob, 3)) %>% 
+  group_by(prob) %>% 
+  summarise(
+    tosses = n(),
+    positives = sum(positive)
+    ) %>% 
+  ungroup() %>% 
+  mutate(fraction = positives / tosses)
+
+pred_table
+```
+
+
+```{r}
+pred_table %>% 
+  ggplot(aes(prob, fraction)) +
+  geom_line() +
+  geom_smooth()
+```
+
+
+```{r}
+library(ranger)
+library(rsample)
+```
+
+```{r}
+iris_split <- initial_split(iris)
+```
+
+
+```{r}
+model <- ranger(Species ~ ., data = training(iris_split), probability = TRUE)
+```
+
+
+
+```{r}
+preds <- predict(model, testing(iris_split))
+
+tbl_iris <- testing(iris_split) %>% 
+  bind_cols(preds$predictions) %>% 
+  mutate(
+    virginica_bin = case_when(
+      virginica >= 0 & virginica <= 0.1 ~ 1,
+      virginica <= 0.2 ~ 2,
+      virginica <= 0.3 ~ 3,
+      virginica <= 0.4 ~ 4,
+      virginica <= 0.5 ~ 5,
+      virginica <= 0.6 ~ 6,
+      virginica <= 0.7 ~ 7,
+      virginica <= 0.8 ~ 8,
+      virginica <= 0.9 ~ 9,
+      TRUE ~ 10
+    ),
+    is_virginica = ifelse(Species == "virginica", 1, 0)
+  )
+
+tbl_iris
+```
+
+```{r}
+tbl_iris %>% 
+  group_by(virginica_bin) %>% 
+  summarise(
+    correct = sum(is_virginica),
+    total = n()
+  )
+```
+

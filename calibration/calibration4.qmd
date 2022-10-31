@@ -1,0 +1,125 @@
+
+```{r setup}
+#| include: false
+options(scipen = 100)
+library(tidyverse)
+library(tidymodels)
+library(ranger)
+library(rsample)
+library(rlang)
+```
+
+```{r}
+set.seed(100)
+iris_split <- initial_split(iris, prop = 1/3)
+
+iris_split
+```
+
+
+```{r}
+model <- ranger(Species ~ ., data = training(iris_split), probability = TRUE)
+```
+
+```{r}
+preds <- predict(model, testing(iris_split))
+
+tbl_iris <- testing(iris_split) %>% 
+  bind_cols(preds$predictions)
+```
+
+```{r}
+add_cols <- function(.data, x) {
+  x <- enquo(x)
+  str_x <- as_name(x)
+  is_nm <- parse_expr(paste0("is_", str_x))
+  bin_nm <- parse_expr(paste0(str_x, "_bin"))
+  .data %>% 
+    mutate(
+     !! is_nm  := ifelse(Species == str_x, 1, 0),
+     !! bin_nm := case_when(
+       !!x <= 0.1 ~ 0.1,
+       !!x <= 0.2 ~ 0.2,
+       !!x <= 0.3 ~ 0.3,
+       !!x <= 0.4 ~ 0.4,
+       !!x <= 0.5 ~ 0.5,
+       !!x <= 0.6 ~ 0.6,
+       !!x <= 0.7 ~ 0.7,
+       !!x <= 0.8 ~ 0.8,
+       !!x <= 0.9 ~ 0.9,       
+       TRUE ~ 1
+     )
+    )
+} 
+
+
+tbl_new <- tbl_iris  %>% 
+  add_cols(setosa) %>% 
+  add_cols(versicolor) %>% 
+  add_cols(virginica) %>% 
+  select(contains("bin"), starts_with("is_"), everything()) %>% 
+  arrange(Species)
+
+```
+
+```{r}
+tbl_new %>% 
+  filter(setosa_bin < 1, versicolor_bin < 1, virginica_bin < 1) 
+```
+```{r}
+add_percent <- function(x, .data) {
+  x <- enquo(x)
+  str_x <- as_name(x)
+  is_nm <- parse_expr(paste0("is_", str_x))
+  bin_nm <- parse_expr(paste0(str_x, "_bin"))
+  per_nm <- parse_expr(paste0("per_", str_x))
+  .data %>%
+    rename(bin = !!bin_nm) %>% 
+    group_by(bin) %>% 
+    summarise(
+      matches = sum(!! is_nm),
+      total = n()
+    ) %>% 
+    ungroup() %>% 
+    filter(total > 2) %>% 
+    mutate(!! per_nm := matches / total) %>% 
+    select(-matches, -total)
+}
+```
+
+
+```{r}
+tbl_all <-exprs(setosa, versicolor, virginica) %>% 
+  map(add_percent, tbl_new) %>% 
+  reduce(full_join, by = "bin") %>% 
+  arrange(bin)
+
+tbl_all
+```
+
+
+
+```{r}
+tbl_all %>% 
+  filter(!is.na(per_versicolor)) %>% 
+  ggplot(aes(bin, per_versicolor)) +
+  geom_segment(x = 0, y = 0, xend = 1, yend = 1, linetype = 2, color = "blue") +
+  geom_line(color = "orange") +
+  geom_point(color = "orange") +
+  theme_minimal()
+```
+
+
+```{r}
+tbl_all %>% 
+  filter(!is.na(per_virginica)) %>% 
+  ggplot(aes(bin, per_virginica)) +
+  geom_segment(x = 0, y = 0, xend = 1, yend = 1, linetype = 2, color = "blue") +
+  geom_line(color = "orange") +
+  geom_point(color = "orange") +
+  theme_minimal()
+```
+
+
+
+

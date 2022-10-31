@@ -1,0 +1,99 @@
+
+```{r setup}
+#| include: false
+options(scipen = 100)
+library(tidyverse)
+library(tidymodels)
+library(ranger)
+library(rsample)
+library(rlang)
+```
+
+```{r}
+set.seed(100)
+iris_split <- initial_split(iris, prop = 1/3)
+
+iris_split
+```
+
+
+```{r}
+model <- ranger(Species ~ ., data = training(iris_split), probability = TRUE)
+```
+
+```{r}
+preds <- predict(model, testing(iris_split))
+
+tbl_iris <- testing(iris_split) %>% 
+  bind_cols(preds$predictions)
+
+glimpse(tbl_iris)
+```
+
+
+```{r}
+tbl_iris %>% 
+  ungroup() %>% 
+  arrange(virginica) %>% 
+  mutate(is_virginica = ifelse(Species == "virginica", 1, 0)) %>% 
+  select(virginica, is_virginica) %>% 
+  mutate(
+    per = cumsum(is_virginica) / sum(is_virginica), 
+    accum_prob = cummean(virginica), 
+    accum_positives = cummean(per)
+  )
+```
+
+```{r}
+tbl_iris %>% 
+  ungroup() %>% 
+  arrange(virginica) %>% 
+  mutate(is_virginica = ifelse(Species == "virginica", 1, 0)) %>% 
+  select(virginica, is_virginica) %>% 
+  mutate(
+    per = cumsum(is_virginica) / sum(is_virginica), 
+    accum_prob = cummean(virginica), 
+    accum_positives = cummean(per)
+  )%>% 
+  ggplot() +
+  geom_line(aes(accum_prob, accum_positives)) +
+  geom_line(aes(accum_prob, accum_prob / 2), linetype = 2)
+```
+
+```{r}
+tbl_iris %>% 
+  ungroup() %>% 
+  arrange(setosa) %>% 
+  mutate(is_setosa = ifelse(Species == "setosa", 1, 0)) %>% 
+  select(setosa, is_setosa) %>% 
+  mutate(
+    per = cumsum(is_setosa) / sum(is_setosa), 
+    accum_prob = cumsum(setosa), 
+    accum_positives = cumsum(per)
+  ) %>% 
+  ggplot() +
+  geom_line(aes(accum_prob, accum_positives)) +
+  geom_line(aes(accum_prob, accum_prob / 2), linetype = 2)
+```
+
+
+
+```{r}
+tbl_iris %>% 
+  ungroup() %>% 
+  arrange(versicolor) %>% 
+  mutate(is_versicolor = ifelse(Species == "versicolor", 1, 0)) %>% 
+  select(versicolor, is_versicolor) %>% 
+  mutate(
+    per = cumsum(is_versicolor) / sum(is_versicolor), 
+    accum_prob = cumsum(versicolor), 
+    accum_positives = cumsum(per)
+  ) %>% 
+  ggplot() +
+  geom_line(aes(accum_prob, accum_positives)) +
+  geom_line(aes(accum_prob, accum_prob / 2), linetype = 2)
+```
+
+
+
+
