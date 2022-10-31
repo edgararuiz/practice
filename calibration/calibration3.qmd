@@ -52,12 +52,30 @@ tbl_iris %>%
   select(virginica, is_virginica) %>% 
   mutate(
     per = cumsum(is_virginica) / sum(is_virginica), 
-    accum_prob = cummean(virginica), 
-    accum_positives = cummean(per)
+    accum_prob = cumsum(virginica), 
+    accum_positives = cumsum(per),
+    accum_two = cumsum(is_virginica)
   )%>% 
   ggplot() +
-  geom_line(aes(accum_prob, accum_positives)) +
-  geom_line(aes(accum_prob, accum_prob / 2), linetype = 2)
+  geom_line(aes(accum_prob, accum_two)) +
+  geom_line(aes(accum_two, accum_two), linetype = 2)
+```
+
+```{r}
+tbl_iris %>% 
+  ungroup() %>% 
+  arrange(virginica) %>% 
+  mutate(is_virginica = ifelse(Species == "virginica", 1, 0)) %>% 
+  select(virginica, is_virginica) %>% 
+  mutate(
+    per = cumsum(is_virginica) / sum(is_virginica), 
+    accum_prob = cumsum(virginica), 
+    accum_positives = cumsum(per),
+    accum_two = cumsum(is_virginica)
+  )%>% 
+  ggplot() +
+  geom_line(aes(accum_prob, accum_two)) +
+  geom_line(aes(accum_two, accum_two), linetype = 2)
 ```
 
 ```{r}
@@ -69,11 +87,12 @@ tbl_iris %>%
   mutate(
     per = cumsum(is_setosa) / sum(is_setosa), 
     accum_prob = cumsum(setosa), 
-    accum_positives = cumsum(per)
+    accum_positives = cumsum(per),
+    accum_two = cumsum(is_setosa)
   ) %>% 
   ggplot() +
-  geom_line(aes(accum_prob, accum_positives)) +
-  geom_line(aes(accum_prob, accum_prob / 2), linetype = 2)
+  geom_line(aes(accum_prob, accum_two)) +
+  geom_line(aes(accum_two, accum_two), linetype = 2)
 ```
 
 
@@ -87,13 +106,39 @@ tbl_iris %>%
   mutate(
     per = cumsum(is_versicolor) / sum(is_versicolor), 
     accum_prob = cumsum(versicolor), 
-    accum_positives = cumsum(per)
+    accum_positives = cumsum(per), 
+    accum_two = cumsum(is_versicolor),
+    ratio = accum_positives / accum_prob
   ) %>% 
   ggplot() +
   geom_line(aes(accum_prob, accum_positives)) +
-  geom_line(aes(accum_prob, accum_prob / 2), linetype = 2)
+  geom_line(aes(accum_two, accum_positives), linetype = 2)
+```
+```{r}
+iris %>% 
+  count(Species)
 ```
 
 
+```{r}
+tibble(x = sample(c(0,1), 1000, replace = TRUE, prob = c(0.66, 0.33))) %>% 
+  arrange(x) %>% 
+  mutate(
+    y = cumsum(x) / sum(x),
+    y2 = cummean(y),
+    y3 = cummean(x),
+    ratio = y2 / y3
+    )
+```
 
+```{r}
+tibble(x = sample(c(0,1), 1000, replace = TRUE, prob = c(0.66, 0.33))) %>% 
+  arrange(x) %>% 
+  mutate(
+    y = cumsum(x) / sum(x),
+    y2 = cummean(y),
+    y3 = cummean(x),
+    ratio = y2 / y3
+    ) 
+```
 
