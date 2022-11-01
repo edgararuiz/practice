@@ -174,15 +174,28 @@ glm(class_p ~ .pred_class_1, data = rf_tr_platt, family = "binomial")
 rf_tr_holdout %>% 
   arrange(.pred_class_1) %>% 
   mutate(
-    pc1 = cumsum(.pred_class_1),
+    pc1 = cummean(.pred_class_1),
     pc1_pred = ifelse(class == "class_1", 1, 0),
-    pc1_tot = cumsum(pc1_pred)
+    pc1_tot = cummean(pc1_pred)
     ) %>% 
   select(pc1, pc1_tot) %>% 
   arrange(-pc1) %>% 
   ggplot() +
   geom_line(aes(pc1_tot, pc1)) +
   geom_line(aes(pc1_tot, pc1_tot), color = "red", linetype = 2)
+
+
+
+rf_tr_holdout %>% 
+  arrange(.pred_class_1) %>% 
+  mutate(
+    pc1 = cummean(.pred_class_1),
+    pc1_pred = ifelse(class == "class_1", 1, 0),
+    pc1_tot = cummean(pc1_pred)
+  ) %>% 
+  select(pc1, pc1_tot, pc1_pred) %>% 
+  arrange(pc1) %>% 
+  View()
 
 rf_tr_holdout %>% 
   arrange(.pred_class_1, desc(class)) %>% 
@@ -206,6 +219,7 @@ rf_tr_holdout %>%
     pc1_tot = cumsum(pc1_pred)
   ) %>% 
   select(contains("pc1"), .pred_class_2) %>% 
+  #View()
   arrange(-pc1)  %>% 
   ggplot() +
   geom_line(aes(pc1, pc1_tot)) +
@@ -213,9 +227,51 @@ rf_tr_holdout %>%
 
 
 
-rf_tr_holdout %>% 
-  mutate(
-    
-  )
+library(rlang)
+add_cols <- function(.data, x) {
+  x <- enquo(x)
+  str_x <- substr(as_name(x), 7, nchar(as_name(x)))
+  is_nm <- parse_expr(paste0("is_", str_x))
+  bin_nm <- parse_expr(paste0(str_x, "_bin"))
+  bin_avg <- parse_expr(paste0(str_x, "_bin_avg"))
+  .data %>% 
+    mutate(
+      !! is_nm  := ifelse(class == str_x, 1, 0),
+      !! bin_nm := case_when(
+        !!x <= 0.1 ~ 0.1,
+        !!x <= 0.2 ~ 0.2,
+        !!x <= 0.3 ~ 0.3,
+        !!x <= 0.4 ~ 0.4,
+        !!x <= 0.5 ~ 0.5,
+        !!x <= 0.6 ~ 0.6,
+        !!x <= 0.7 ~ 0.7,
+        !!x <= 0.8 ~ 0.8,
+        !!x <= 0.9 ~ 0.9,       
+        TRUE ~ 1
+      )
+    ) 
+} 
 
-caret::calibration(class ~ .pred_class_2, data = rf_tr_holdout) %>% plot()
+rf_tr_holdout %>% 
+  filter(.pred_class_1 >= 0.3, .pred_class_1 < 0.4) %>% 
+  count(class)
+
+rf_tr_holdout %>% 
+  add_cols(.pred_class_1) %>% 
+  filter(class_1_bin  == 0.4) %>% 
+  count(is_class_1)
+
+rf_tr_holdout %>% 
+  add_cols(.pred_class_1) %>% 
+  group_by(class_1_bin) %>% 
+  summarise(
+    total = sum(is_class_1) / n(),
+    bin = median(.pred_class_1),
+    number = n(),
+    postivies = sum(is_class_1)
+  ) %>% 
+  ggplot() +
+  geom_line(aes(bin, total))
+
+  
+caret::calibration(class ~ .pred_class_1, data = rf_tr_holdout) %>% plot()
