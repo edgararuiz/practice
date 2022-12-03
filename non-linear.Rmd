@@ -1,0 +1,343 @@
+---
+title: "It's a Nonlinear World"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    theme: sandstone
+    source_code: embed
+    social: ["linkedin","twitter","menu"]
+    vertical_layout: scroll
+runtime: shiny
+
+---
+
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(shiny)
+library(ggplot2)
+library(ggthemes)
+library(dplyr)
+```
+
+
+Per unit profit
+====================================================================== 
+
+
+Input {.sidebar}
+-----------------------------------------------------------------------
+
+
+
+
+```{r}
+  sliderInput("unit_price",
+             "Unit Price (in cents):",
+             min = 100,
+             max = 300,
+             value = 200, 
+             step = 5)
+
+  sliderInput("unit_variable",
+             "Unit Variable Costs (in cents):",
+             min = 10,
+             max = 90,
+             value = 50, 
+             step = 5)
+  
+  sliderInput("unit_fixed",
+             "Fixed Costs:",
+             min = 10000,
+             max = 100000,
+             value = 50000, 
+             step = 5000)
+  
+
+```
+
+Use these controls to see how other drivers can impact profit.  The values are preset to those used in the article.
+
+---
+
+This dashboard was built using:
+
+- [RStudio](rtudio.com)
+- [RStudio Connect](https://www.rstudio.com/products/connect/)
+- [flexdashboard](http://rmarkdown.rstudio.com/flexdashboard/index.html)
+- [Shiny](http://rmarkdown.rstudio.com/flexdashboard/shiny.html)
+- [ggplot2](http://ggplot2.tidyverse.org/)
+
+Row 
+-----------------------------------------------------------------------
+
+### "Managers focus a great deal on the benefits of economies of scale and growth. However, linear thinking may lead them to overestimate volume as a driver of profit, and thus understimate other more impactful drivers, like price." -  [Linear Thinking in a Nonlinear World - HBR.org](https://hbr.org/2017/05/linear-thinking-in-a-nonlinear-world)
+
+
+$$
+\frac{(Volume * Unit.Price) - Fixed.Costs - (Volume * Unit.Variable.Costs)}{Volume}
+$$
+
+Row 
+-----------------------------------------------------------------------
+
+### Unit Price
+
+```{r}
+renderValueBox({
+  render_value <- paste0("$", round(input$unit_price, digits = 2) / 100)
+  valueBox(render_value, icon = "fa-cog", color = "lightgreen")
+})
+```
+
+### Unit Variable Costs
+
+```{r}
+renderValueBox({
+  render_value <- paste0("$", round(input$unit_variable, digits = 2) / 100)
+  valueBox(render_value, icon = "fa-cogs", color = "lightblue")
+})
+```
+
+### Fixed Costs
+
+```{r}
+renderValueBox({
+  render_value <- paste0("$", round(input$unit_fixed, digits = 2) / 1000, "K")
+  valueBox(render_value, icon = "fa-industry", color = "orange")
+})
+```
+
+Row 
+-----------------------------------------------------------------------
+
+```{r, fig.height = 10, fig.width=9}
+
+ plotOutput("new_plot")
+
+```
+
+
+Customer Lifetime Value
+====================================================================== 
+
+
+Row 
+-----------------------------------------------------------------------
+
+### "Most managers believe that it makes little difference to the bottom line which segment's retention to increase.  If anything most people find doubling the weaker retention rate more appealing than increasing the stronger one by, say, a third." -  [Linear Thinking in a Nonlinear World - HBR.org](https://hbr.org/2017/05/linear-thinking-in-a-nonlinear-world)
+
+$$
+\frac{Margin * Retention.Rate}{1 + Discount.Rate - Retention.Rate}
+$$
+
+Input {.sidebar}
+-----------------------------------------------------------------------
+
+
+
+```{r}
+  sliderInput("margin_dollars",
+             "Margin (In Dollars):",
+             value = 100,
+             min = 100,
+             max = 300)
+
+  sliderInput("discount_rate",
+             "Discount Rate (In Percentage):",
+             value = 10,
+             min = 10,
+             max = 50)
+```
+
+Use the controls to see how different margin and discount rate levels affect the curve.
+
+
+Row 
+-----------------------------------------------------------------------
+
+### Margin
+
+```{r}
+renderValueBox({
+  render_value <- paste0("$", input$margin_dollars)
+  valueBox(render_value, icon = "fa-money", color = "lightblue")
+})
+```
+
+### Discount Rate
+
+```{r}
+renderValueBox({
+  render_value <- paste0(input$discount_rate, "%")
+  valueBox(render_value, icon = "fa-percent", color = "lightgreen")
+})
+```
+
+
+Row 
+-----------------------------------------------------------------------
+
+```{r, fig.height = 10, fig.width=9}
+
+ plotOutput("retention_plot")
+
+```
+
+
+
+```{r, server}
+
+  unit_profit <- function(unit_price, unit_cost, fixed_costs, volume){
+    round(((volume * unit_price) - fixed_costs - (volume * unit_cost)) /  volume, digits = 2)
+  }
+
+  volume = (1:10) * 100000
+    
+  output$new_plot <- renderPlot({
+     
+  
+    profit_total <- unit_profit(
+      input$unit_price / 100,
+      input$unit_variable / 100,
+      input$unit_fixed,
+      volume
+    )
+      
+    profit_table <- tibble(
+      volume, 
+      profit = profit_total) %>%
+      mutate(next_profit = lead(profit),
+             increase_profit = lead(profit) - profit,
+             mid_point_profit = profit + ((lead(profit) - profit) / 2),  
+             volume_label = ifelse(volume < 1000000, paste0(volume / 1000, "K"), paste0(volume / 1000000, "M"))
+             )
+  
+        
+    ggplot(profit_table, aes(x = volume, y = profit)) +
+        geom_line(size = 2, color = "#D55E00")  +
+        geom_line(size = 1.5, color = "#E69F00")  +
+        geom_point(size = 2, color = "#E69F00")  +
+        geom_text(aes(
+          x = 250000, 
+          y = mid_point_profit[1], 
+          label = paste0(round(increase_profit[1] , digits = 2) * 100, " cent increase"), 
+          hjust = 0),
+          size = 5,
+          color = "#009E73") +
+        geom_errorbar(aes(
+          x = 240000, 
+          ymin = profit[1], 
+          ymax = next_profit[1], 
+          width = 20000),
+          color = "#009E73") +
+        geom_text(aes(
+          x = 360000, 
+          y = mid_point_profit[2],
+          label = paste0(round(increase_profit[2] , digits = 2) * 100, " cent increase"), 
+          hjust = 0),
+          size = 5,
+          color = "#56B4E9") +
+        geom_errorbar(aes(
+          x = 350000, 
+          ymin = profit[2], 
+          ymax = next_profit[2], 
+          width = 20000),
+          color = "#56B4E9") +
+        #theme_gdocs() +
+        theme_hc(bgcolor = "darkunica") +
+        #theme_solarized() +
+        scale_y_continuous(
+          name = "Per Unit Profit", 
+          breaks = profit_table$profit[c(1,2, 3,10)],
+          labels = NULL) +
+        scale_x_continuous(name = "Volume", breaks = NULL) +
+        geom_text(aes(x = volume, y = profit + 0.02, label = paste0("$", profit)) , hjust = 1,  size = 4, color = "white") +
+        geom_text(aes(x = volume, y = profit - 0.02, label = volume_label) , hjust = 0,  size = 4, color = "white")
+
+})
+
+  
+
+    
+    
+  output$retention_plot <- renderPlot({
+       
+    retention <- c(0.2, 0.4, 0.6, 0.8)
+    
+    m <- input$margin_dollars
+    d <- input$discount_rate
+    
+    clv <- round(((m * retention) / (1 + (d / 100) - retention)))
+  
+      retention_table <- tibble(
+        retention, 
+        clv )%>%
+        mutate(next_clv = lead(clv),
+               increase_clv = lead(clv) - clv,
+               mid_point_clv = clv + ((lead(clv) - clv) / 2),  
+               retention_label =  paste0((retention * 100), "%")
+               )
+    
+  
+      ggplot(retention_table, aes(x = retention, y = clv)) +
+          geom_line(size = 2, color = "#E69F00")  +
+          geom_line(size = 1.5, color = "#E69F00")  +
+          geom_point(size = 2, color = "#E69F00")  +
+          geom_text(aes(x = retention - 0.01, y = clv + 20, label = paste0("$", clv)) , hjust = 1,  size = 4, color = "white") +
+          geom_text(aes(x = retention, y = clv - 20, label = retention_label) , hjust = 0,  size = 4, color = "white") +
+          geom_text(aes(
+            x = 0.58, 
+            y = next_clv[3], 
+            label = paste0("$", increase_clv[3], " increase"), 
+            hjust = 1),
+            size = 5,
+            color = "#009E73") +
+          geom_segment(aes(
+            x = 0.6, 
+            xend = 0.6,
+            y = clv[3] , 
+            yend = next_clv[3]),
+            size = 0.1,
+            color = "#009E73") +
+          geom_segment(aes(
+            x = 0.6, 
+            xend = 0.8,
+            y = next_clv[3] , 
+            yend = next_clv[3]),
+            size = 0.1,
+            color = "#009E73") +
+          geom_text(aes(
+            x = 0.2, 
+            y = next_clv[1] + 20, 
+            label = paste0("$", increase_clv[1], " increase"), 
+            hjust = 0),
+            size = 5,
+            color = "#56B4E9") +
+          geom_segment(aes(
+            x = 0.2, 
+            xend = 0.2,
+            y = clv[1] , 
+            yend = next_clv[1]),
+            size = 0.1,
+            color = "#56B4E9") +
+          geom_segment(aes(
+            x = 0.2, 
+            xend = 0.4,
+            y = next_clv[1] , 
+            yend = next_clv[1]),
+            size = 0.1,
+            color = "#56B4E9") +
+        theme_hc(bgcolor = "darkunica") +
+          scale_y_continuous(
+            name = "CLV", 
+            #breaks = retention_table$clv[c(1,2, 3,4)],
+            breaks = NULL,
+            labels = NULL) +
+          scale_x_continuous(name = "Retention", breaks = NULL)
+  
+  })
+
+```
+
+
