@@ -48,6 +48,8 @@ rf_te_pred <- augment(rf_fit, te) %>%
   select(class, .pred_class_1, .pred_class_2)
 
 
+rft <- rf_tr_holdout %>% 
+  mutate(class1 = ifelse(class == "class_1", 1, 0))
 
 
 
@@ -275,3 +277,68 @@ rf_tr_holdout %>%
 
   
 caret::calibration(class ~ .pred_class_1, data = rf_tr_holdout) %>% plot()
+
+bin_table <- rf_tr_holdout %>% 
+  probability_bins(class, "class_1", .pred_class_1, no_bins = 10) 
+
+rft <- rf_tr_holdout %>% 
+  mutate(class1 = ifelse(class == "class_1", 1, 0))
+
+
+rf_tr_holdout %>% 
+  probability_bins(class, .pred_class_1, "class_1")
+
+model <- glm(class1 ~ .pred_class_1, data = rft, family = "binomial")
+
+
+
+preds <- predict(model, newdata = rft, type = "response", se.fit = TRUE)
+
+w_preds <- rft %>% 
+  mutate(preds = preds)
+
+
+w_preds %>% 
+  mutate(
+    x = ifelse(class == "class_1", 1, 0),
+    y = ifelse(preds > 0.5, 1, 0),
+    z = ifelse(class == ".pred_class_1", 1, 0),
+    ) %>% 
+  select(x, y, z) %>% 
+  filter(z != y) %>% 
+  count(x, y, z)
+
+w_preds %>% 
+  probability_bins(class1, preds) %>% 
+  ggplot() +
+  geom_line(aes(mean_predicted, fraction_positives))
+
+rf_tr_holdout %>% 
+  cal_glm_dataframe(class, .pred_class_1, "class_1") %>% 
+  View()
+
+
+x <- rf_tr_holdout %>% 
+  cal_glm_dataframe(class, .pred_class_1, "class_1") 
+
+y <- cal_add_adj(x, rf_tr_holdout) 
+
+
+bind_rows(
+  mutate(probability_bins(y, class, .pred_class_1_adj_glm, "class_1"), Source = "GLM"),
+  mutate(probability_bins(y, class, .pred_class_1, "class_1"), Source = "Original")
+) %>% 
+  ggplot(aes(mean_predicted, fraction_positives, group = Source, color = Source)) +
+  geom_line() +
+  geom_point() +
+  geom_segment(x = 0, y = 0, xend = 1, yend = 1, linetype = 2, color = "gray") +
+  theme_minimal() +
+  labs(title = "Calibration Plot", x = "Mean Predicted", y = "Fraction of Positives")
+
+
+new_model <- isoreg(rft$.pred_class_1, rft$class1)
+
+nm <-as.stepfun(new_model)
+
+environment(nm)$x %>%  length()
+environment(nm)$y %>% length()

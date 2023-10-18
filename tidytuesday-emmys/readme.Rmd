@@ -175,6 +175,11 @@ prep_winners %>%
   filter(title == "The Mandalorian") %>% 
   arrange(year)
 ```
+```{r}
+prep_winners %>% 
+  filter(year == 2021, title == "The Crown") %>% 
+  arrange(category)
+```
 
 
 ```{r}

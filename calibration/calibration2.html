@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.247">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>calibration2</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="calibration2_files/libs/clipboard/clipboard.min.js"></script>
+<script src="calibration2_files/libs/quarto-html/quarto.js"></script>
+<script src="calibration2_files/libs/quarto-html/popper.min.js"></script>
+<script src="calibration2_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="calibration2_files/libs/quarto-html/anchor.min.js"></script>
+<link href="calibration2_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="calibration2_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="calibration2_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="calibration2_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="calibration2_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+
+
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">100</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>iris_split <span class="ot">&lt;-</span> <span class="fu">initial_split</span>(iris, <span class="at">prop =</span> <span class="dv">1</span><span class="sc">/</span><span class="dv">3</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>iris_split</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>&lt;Training/Testing/Total&gt;
+&lt;50/100/150&gt;</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">ranger</span>(Species <span class="sc">~</span> ., <span class="at">data =</span> <span class="fu">training</span>(iris_split), <span class="at">probability =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(model, <span class="fu">testing</span>(iris_split))</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>tbl_iris <span class="ot">&lt;-</span> <span class="fu">testing</span>(iris_split) <span class="sc">%&gt;%</span> </span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_cols</span>(preds<span class="sc">$</span>predictions) <span class="sc">%&gt;%</span> </span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">versicolor_bin =</span> <span class="fu">case_when</span>(</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>      versicolor <span class="sc">&gt;=</span> <span class="dv">0</span> <span class="sc">&amp;</span> versicolor <span class="sc">&lt;=</span> <span class="fl">0.1</span> <span class="sc">~</span> <span class="fl">0.1</span>,</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>      versicolor <span class="sc">&lt;=</span> <span class="fl">0.2</span> <span class="sc">~</span> <span class="fl">0.2</span>,</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>      versicolor <span class="sc">&lt;=</span> <span class="fl">0.3</span> <span class="sc">~</span> <span class="fl">0.3</span>,</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>      versicolor <span class="sc">&lt;=</span> <span class="fl">0.4</span> <span class="sc">~</span> <span class="fl">0.4</span>,</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>      versicolor <span class="sc">&lt;=</span> <span class="fl">0.5</span> <span class="sc">~</span> <span class="fl">0.5</span>,</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>      versicolor <span class="sc">&lt;=</span> <span class="fl">0.6</span> <span class="sc">~</span> <span class="fl">0.6</span>,</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>      versicolor <span class="sc">&lt;=</span> <span class="fl">0.7</span> <span class="sc">~</span> <span class="fl">0.7</span>,</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>      versicolor <span class="sc">&lt;=</span> <span class="fl">0.8</span> <span class="sc">~</span> <span class="fl">0.8</span>,</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>      versicolor <span class="sc">&lt;=</span> <span class="fl">0.9</span> <span class="sc">~</span> <span class="fl">0.9</span>,</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> <span class="dv">1</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">is_versicolor =</span> <span class="fu">ifelse</span>(Species <span class="sc">==</span> <span class="st">"versicolor"</span>, <span class="dv">1</span>, <span class="dv">0</span>)</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>tbl_iris</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    Sepal.Length Sepal.Width Petal.Length Petal.Width    Species      setosa
+1            5.1         3.5          1.4         0.2     setosa 1.000000000
+2            4.7         3.2          1.3         0.2     setosa 1.000000000
+3            5.0         3.6          1.4         0.2     setosa 1.000000000
+4            5.4         3.9          1.7         0.4     setosa 0.965333333
+5            5.0         3.4          1.5         0.2     setosa 1.000000000
+6            4.9         3.1          1.5         0.1     setosa 0.999000000
+7            5.4         3.7          1.5         0.2     setosa 0.959333333
+8            4.8         3.4          1.6         0.2     setosa 1.000000000
+9            4.8         3.0          1.4         0.1     setosa 0.996500000
+10           5.8         4.0          1.2         0.2     setosa 0.910400000
+11           5.4         3.9          1.3         0.4     setosa 0.965333333
+12           5.1         3.5          1.4         0.3     setosa 1.000000000
+13           5.7         3.8          1.7         0.3     setosa 0.900685714
+14           5.4         3.4          1.7         0.2     setosa 0.957333333
+15           5.1         3.7          1.5         0.4     setosa 1.000000000
+16           4.6         3.6          1.0         0.2     setosa 1.000000000
+17           5.0         3.0          1.6         0.2     setosa 0.996500000
+18           5.0         3.4          1.6         0.4     setosa 1.000000000
+19           5.2         3.5          1.5         0.2     setosa 1.000000000
+20           5.2         4.1          1.5         0.1     setosa 1.000000000
+21           5.5         4.2          1.4         0.2     setosa 0.928285714
+22           4.9         3.1          1.5         0.2     setosa 0.999000000
+23           5.0         3.2          1.2         0.2     setosa 1.000000000
+24           5.5         3.5          1.3         0.2     setosa 0.888285714
+25           4.9         3.6          1.4         0.1     setosa 1.000000000
+26           4.4         3.0          1.3         0.2     setosa 0.996500000
+27           5.1         3.4          1.5         0.2     setosa 1.000000000
+28           4.5         2.3          1.3         0.3     setosa 0.995166667
+29           5.0         3.5          1.6         0.6     setosa 1.000000000
+30           4.8         3.0          1.4         0.3     setosa 0.996500000
+31           5.1         3.8          1.6         0.2     setosa 1.000000000
+32           5.3         3.7          1.5         0.2     setosa 0.988000000
+33           5.0         3.3          1.4         0.2     setosa 1.000000000
+34           6.4         3.2          4.5         1.5 versicolor 0.004400000
+35           6.9         3.1          4.9         1.5 versicolor 0.000000000
+36           5.7         2.8          4.5         1.3 versicolor 0.003352381
+37           6.3         3.3          4.7         1.6 versicolor 0.010400000
+38           4.9         2.4          3.3         1.0 versicolor 0.185166667
+39           6.6         2.9          4.6         1.3 versicolor 0.000400000
+40           5.2         2.7          3.9         1.4 versicolor 0.175166667
+41           5.0         2.0          3.5         1.0 versicolor 0.185166667
+42           5.9         3.0          4.2         1.5 versicolor 0.000400000
+43           6.1         2.9          4.7         1.4 versicolor 0.000400000
+44           5.6         3.0          4.5         1.5 versicolor 0.002685714
+45           6.2         2.2          4.5         1.5 versicolor 0.000400000
+46           5.9         3.2          4.8         1.8 versicolor 0.002400000
+47           6.1         2.8          4.0         1.3 versicolor 0.000400000
+48           6.3         2.5          4.9         1.5 versicolor 0.000000000
+49           6.1         2.8          4.7         1.2 versicolor 0.000400000
+50           6.4         2.9          4.3         1.3 versicolor 0.000400000
+51           6.6         3.0          4.4         1.4 versicolor 0.000400000
+52           6.8         2.8          4.8         1.4 versicolor 0.000400000
+53           6.0         2.9          4.5         1.5 versicolor 0.000400000
+54           5.7         2.6          3.5         1.0 versicolor 0.003352381
+55           5.5         2.4          3.8         1.1 versicolor 0.014952381
+56           5.5         2.4          3.7         1.0 versicolor 0.014952381
+57           5.8         2.7          3.9         1.2 versicolor 0.000400000
+58           6.0         2.7          5.1         1.6 versicolor 0.000000000
+59           6.0         3.4          4.5         1.6 versicolor 0.020400000
+60           6.3         2.3          4.4         1.3 versicolor 0.000400000
+61           5.6         3.0          4.1         1.3 versicolor 0.002685714
+62           5.5         2.5          4.0         1.3 versicolor 0.014952381
+63           5.0         2.3          3.3         1.0 versicolor 0.185166667
+64           5.7         3.0          4.2         1.2 versicolor 0.004685714
+65           5.1         2.5          3.0         1.1 versicolor 0.193166667
+66           5.7         2.8          4.1         1.3 versicolor 0.003352381
+67           6.3         3.3          6.0         2.5  virginica 0.000000000
+68           7.1         3.0          5.9         2.1  virginica 0.000000000
+69           6.3         2.9          5.6         1.8  virginica 0.000000000
+70           7.6         3.0          6.6         2.1  virginica 0.000000000
+71           4.9         2.5          4.5         1.7  virginica 0.175166667
+72           7.3         2.9          6.3         1.8  virginica 0.000000000
+73           6.7         2.5          5.8         1.8  virginica 0.000000000
+74           7.2         3.6          6.1         2.5  virginica 0.000000000
+75           6.5         3.2          5.1         2.0  virginica 0.000000000
+76           5.7         2.5          5.0         2.0  virginica 0.000952381
+77           5.8         2.8          5.1         2.4  virginica 0.000000000
+78           6.5         3.0          5.5         1.8  virginica 0.000000000
+79           7.7         3.8          6.7         2.2  virginica 0.000000000
+80           7.7         2.6          6.9         2.3  virginica 0.000000000
+81           5.6         2.8          4.9         2.0  virginica 0.000952381
+82           7.7         2.8          6.7         2.0  virginica 0.000000000
+83           6.7         3.3          5.7         2.1  virginica 0.000000000
+84           6.2         2.8          4.8         1.8  virginica 0.000400000
+85           6.1         3.0          4.9         1.8  virginica 0.000000000
+86           6.4         2.8          5.6         2.1  virginica 0.000000000
+87           7.2         3.0          5.8         1.6  virginica 0.000000000
+88           7.4         2.8          6.1         1.9  virginica 0.000000000
+89           7.9         3.8          6.4         2.0  virginica 0.000000000
+90           6.4         2.8          5.6         2.2  virginica 0.000000000
+91           6.3         2.8          5.1         1.5  virginica 0.000000000
+92           7.7         3.0          6.1         2.3  virginica 0.000000000
+93           6.4         3.1          5.5         1.8  virginica 0.000000000
+94           6.0         3.0          4.8         1.8  virginica 0.000400000
+95           6.7         3.1          5.6         2.4  virginica 0.000000000
+96           6.8         3.2          5.9         2.3  virginica 0.000000000
+97           6.7         3.3          5.7         2.5  virginica 0.000000000
+98           6.3         2.5          5.0         1.9  virginica 0.000000000
+99           6.5         3.0          5.2         2.0  virginica 0.000000000
+100          6.2         3.4          5.4         2.3  virginica 0.000000000
+     versicolor   virginica versicolor_bin is_versicolor
+1   0.000000000 0.000000000            0.1             0
+2   0.000000000 0.000000000            0.1             0
+3   0.000000000 0.000000000            0.1             0
+4   0.034666667 0.000000000            0.1             0
+5   0.000000000 0.000000000            0.1             0
+6   0.001000000 0.000000000            0.1             0
+7   0.040666667 0.000000000            0.1             0
+8   0.000000000 0.000000000            0.1             0
+9   0.003500000 0.000000000            0.1             0
+10  0.088528571 0.001071429            0.1             0
+11  0.034666667 0.000000000            0.1             0
+12  0.000000000 0.000000000            0.1             0
+13  0.099314286 0.000000000            0.1             0
+14  0.042666667 0.000000000            0.1             0
+15  0.000000000 0.000000000            0.1             0
+16  0.000000000 0.000000000            0.1             0
+17  0.003500000 0.000000000            0.1             0
+18  0.000000000 0.000000000            0.1             0
+19  0.000000000 0.000000000            0.1             0
+20  0.000000000 0.000000000            0.1             0
+21  0.071714286 0.000000000            0.1             0
+22  0.001000000 0.000000000            0.1             0
+23  0.000000000 0.000000000            0.1             0
+24  0.111714286 0.000000000            0.2             0
+25  0.000000000 0.000000000            0.1             0
+26  0.003500000 0.000000000            0.1             0
+27  0.000000000 0.000000000            0.1             0
+28  0.004833333 0.000000000            0.1             0
+29  0.000000000 0.000000000            0.1             0
+30  0.003500000 0.000000000            0.1             0
+31  0.000000000 0.000000000            0.1             0
+32  0.012000000 0.000000000            0.1             0
+33  0.000000000 0.000000000            0.1             0
+34  0.934455556 0.061144444            1.0             1
+35  0.520577778 0.479422222            0.6             1
+36  0.992603175 0.004044444            1.0             1
+37  0.928455556 0.061144444            1.0             1
+38  0.784173016 0.030660317            0.8             1
+39  0.987962698 0.011637302            1.0             1
+40  0.799533333 0.025300000            0.8             1
+41  0.748973016 0.065860317            0.8             1
+42  0.946403175 0.053196825            1.0             1
+43  0.966611111 0.032988889            1.0             1
+44  0.960346825 0.036967460            1.0             1
+45  0.847269048 0.152330952            0.9             1
+46  0.500041270 0.497558730            0.6             1
+47  0.983029365 0.016570635            1.0             1
+48  0.487613492 0.512386508            0.5             1
+49  0.982029365 0.017570635            1.0             1
+50  0.986362698 0.013237302            1.0             1
+51  0.972350000 0.027250000            1.0             1
+52  0.928149206 0.071450794            1.0             1
+53  0.943423810 0.056176190            1.0             1
+54  0.969848413 0.026799206            1.0             1
+55  0.945637302 0.039410317            1.0             1
+56  0.945637302 0.039410317            1.0             1
+57  0.985161111 0.014438889            1.0             1
+58  0.337097619 0.662902381            0.4             1
+59  0.915415079 0.064184921            1.0             1
+60  0.927096032 0.072503968            1.0             1
+61  0.990464286 0.006850000            1.0             1
+62  0.959803968 0.025243651            1.0             1
+63  0.770373016 0.044460317            0.8             1
+64  0.988242063 0.007072222            1.0             1
+65  0.785673016 0.021160317            0.8             1
+66  0.992603175 0.004044444            1.0             1
+67  0.003563492 0.996436508            0.1             0
+68  0.010157143 0.989842857            0.1             0
+69  0.006413492 0.993586508            0.1             0
+70  0.010157143 0.989842857            0.1             0
+71  0.691401587 0.133431746            0.7             0
+72  0.012034921 0.987965079            0.1             0
+73  0.010490476 0.989509524            0.1             0
+74  0.009934921 0.990065079            0.1             0
+75  0.012544444 0.987455556            0.1             0
+76  0.175491270 0.823556349            0.2             0
+77  0.021957937 0.978042063            0.1             0
+78  0.009135714 0.990864286            0.1             0
+79  0.009934921 0.990065079            0.1             0
+80  0.011034921 0.988965079            0.1             0
+81  0.213491270 0.785556349            0.3             0
+82  0.010034921 0.989965079            0.1             0
+83  0.009840476 0.990159524            0.1             0
+84  0.503422222 0.496177778            0.6             0
+85  0.150452381 0.849547619            0.2             0
+86  0.004413492 0.995586508            0.1             0
+87  0.301716667 0.698283333            0.4             0
+88  0.012034921 0.987965079            0.1             0
+89  0.009934921 0.990065079            0.1             0
+90  0.004413492 0.995586508            0.1             0
+91  0.353877778 0.646122222            0.4             0
+92  0.010157143 0.989842857            0.1             0
+93  0.005563492 0.994436508            0.1             0
+94  0.504857937 0.494742063            0.6             0
+95  0.009840476 0.990159524            0.1             0
+96  0.008001587 0.991998413            0.1             0
+97  0.009840476 0.990159524            0.1             0
+98  0.130713492 0.869286508            0.2             0
+99  0.007135714 0.992864286            0.1             0
+100 0.005063492 0.994936508            0.1             0</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>iris_bins <span class="ot">&lt;-</span> tbl_iris <span class="sc">%&gt;%</span> </span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(versicolor_bin) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">versicolors =</span> <span class="fu">sum</span>(is_versicolor),</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">total =</span> <span class="fu">n</span>()</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">percent =</span> versicolors <span class="sc">/</span> total) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(total <span class="sc">&gt;</span> <span class="dv">1</span>)</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>iris_bins</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 4
+  versicolor_bin versicolors total percent
+           &lt;dbl&gt;       &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt;
+1            0.1           0    57   0    
+2            0.2           0     4   0    
+3            0.4           1     3   0.333
+4            0.6           2     4   0.5  
+5            0.8           5     5   1    
+6            1            23    23   1    </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>iris_bins <span class="sc">%&gt;%</span> </span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(versicolor_bin, percent)) <span class="sc">+</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_segment</span>(<span class="at">x =</span> <span class="dv">0</span>, <span class="at">y =</span> <span class="dv">0</span>, <span class="at">xend =</span> <span class="dv">1</span>, <span class="at">yend =</span> <span class="dv">1</span>, <span class="at">linetype =</span> <span class="dv">2</span>, <span class="at">color =</span> <span class="st">"blue"</span>) <span class="sc">+</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="at">color =</span> <span class="st">"orange"</span>) <span class="sc">+</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">color =</span> <span class="st">"orange"</span>) <span class="sc">+</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="calibration2_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

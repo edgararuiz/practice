@@ -1,0 +1,99 @@
+---
+title: "Baby Names"
+format: html
+editor: visual
+---
+
+## Babynames
+
+```{r}
+library(babynames)
+library(ukbabynames)
+library(onbabynames)
+library(tidyverse)
+```
+
+```{r}
+prep_us <- babynames %>% 
+  mutate(name = str_to_upper(name)) %>% 
+  group_by(year, name) %>% 
+  summarise(n = sum(n)) %>% 
+  ungroup() %>% 
+  mutate(location = "US")
+
+prep_us
+```
+
+```{r}
+prep_uk <- ukbabynames %>% 
+  mutate(name = str_to_upper(name)) %>% 
+  rename(location = nation) %>% 
+  group_by(year, location, name) %>% 
+  summarise(n = sum(n)) %>% 
+  ungroup() %>% 
+  arrange(year, name)
+
+prep_uk
+```
+
+```{r}
+prep_on <- onbabynames %>% 
+  mutate(name = str_to_upper(name)) %>% 
+  group_by(year, name) %>% 
+  summarise(n = sum(n)) %>% 
+  ungroup() %>% 
+  mutate(location = "Ontario")
+
+prep_on
+```
+
+```{r}
+avail_years <- count(prep_us, year, name = "us") %>% 
+  inner_join(count(prep_uk, year, name = "uk") , by = "year") %>% 
+  inner_join(count(prep_on, year, name = "on") , by = "year") %>% 
+  select(year)
+  
+```
+
+```{r}
+prep_all <- prep_us %>% 
+  bind_rows(prep_uk) %>% 
+  bind_rows(prep_on) %>% 
+  inner_join(avail_years, by = "year") %>% 
+  arrange(year, name, location)
+
+prep_all
+```
+
+```{r}
+prep_new <- prep_all %>% 
+  group_by(year, location) %>% 
+  mutate(prop = n / sum(n))
+
+prep_new
+```
+
+```{r}
+sd_name <- prep_new %>% 
+  filter(prop >= 0.001) %>% 
+  group_by(name, location) %>% 
+  summarise(prop_sd = sd(prop, na.rm = TRUE))
+
+sd_name %>% 
+  filter(!is.na(prop_sd)) %>% 
+  arrange(prop_sd) %>% 
+  filter(prop_sd >= 9.396862e-04) %>% 
+  count(name, sort = TRUE) 
+```
+
+```{r} 
+prep_new %>%    
+  filter(name == "JARED") %>%    
+  ggplot() +   
+  geom_line(aes(year, prop, color = location)) 
+```
+
+
+
+
+

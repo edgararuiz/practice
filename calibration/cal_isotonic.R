@@ -48,7 +48,8 @@ cal_isotonic <- function(probs, truth, ...) {
   mod <- isoreg(dat$x, dat$y)
   steps <- as.stepfun(mod)
   new_x <- environment(steps)$x
-  new_y <- environment(steps)$y
+  new_y <- environ
+  ment(steps)$y
   res <- list(x = new_x, y = new_y, levels = table(truth), n = sum(!na_val))
   class(res) <- c("cal_isotonic", "cal_binary")
   res

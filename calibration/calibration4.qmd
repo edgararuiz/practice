@@ -121,5 +121,13 @@ tbl_all %>%
 ```
 
 
-
+```{r}
+tbl_all %>% 
+  filter(!is.na(per_setosa)) %>% 
+  ggplot(aes(bin, per_setosa)) +
+  geom_segment(x = 0, y = 0, xend = 1, yend = 1, linetype = 2, color = "blue") +
+  geom_line(color = "orange") +
+  geom_point(color = "orange") +
+  theme_minimal()
+```
 
