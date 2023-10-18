@@ -1,0 +1,111 @@
+---
+title: Databricks ODBC
+---
+
+## Initial connection
+
+```{r}
+#| include: false
+library(DBI)
+library(dbplyr)
+library(dplyr)
+```
+
+```{r}
+library(DBI)
+```
+
+1.  Download driver from: https://www.databricks.com/spark/odbc-drivers-download
+
+2.  On Mac, make sure to append to the `simba.sparkodbc.ini`, the last two lines shown below
+
+```{r}
+readLines("/Library/simba/spark/lib/simba.sparkodbc.ini")
+```
+
+3.  Here are the arguments to use in order to successfully connect
+
+```{r}
+con <- dbConnect(
+  odbc::odbc(),
+  Driver = "/Library/simba/spark/lib/libsparkodbc_sb64-universal.dylib",
+  Host = "rstudio-partner-posit-default.cloud.databricks.com",
+  Port = 443,
+  AuthMech = 3,
+  HTTPPath = "/sql/1.0/warehouses/300bd24ba12adf8e",
+  Protocol = "https",
+  ThriftTransport = 2,
+  SSL = 1,
+  UID = "token",
+  PWD = Sys.getenv("DATABRICKS_TOKEN")
+  )
+
+```
+
+```{r}
+dbDisconnect(con)
+```
+
+## Problem 1 - Catalog loads correctly, but schema, and tables do not
+
+![](images/problem1.png)
+
+This is more likely an issue that should be addressed in `odbc`, if at all.
+
+At this time, using the `Catalog` argument will pull schema and tables for that specific catalog. But, it will erroneously pull the exact same schema and tables under the other catalogs.
+
+```{r}
+con <- dbConnect(
+  odbc::odbc(),
+  Driver = "/Library/simba/spark/lib/libsparkodbc_sb64-universal.dylib",
+  Host = "rstudio-partner-posit-default.cloud.databricks.com",
+  Port = 443,
+  AuthMech = 3,
+  HTTPPath = "/sql/1.0/warehouses/300bd24ba12adf8e",
+  Protocol = "https",
+  ThriftTransport = 2,
+  SSL = 1,
+  UID = "token",
+  PWD = Sys.getenv("DATABRICKS_TOKEN"),
+  Catalog = "samples"
+  )
+
+```
+
+![](images/Screenshot%202023-10-18%20at%2012.26.19%20PM.png)
+
+## `dplyr` /`dbplyr`
+
+```{r}
+library(dplyr)
+library(dbplyr)
+```
+
+```{r}
+tbl_trips <- tbl(con, in_catalog("samples", "nyctaxi", "trips"))
+
+tbl_trips
+```
+
+```{r}
+tbl_trips %>% 
+  head(100) %>% 
+  summarise(median_distance = median(trip_distance, na.rm = TRUE))
+```
+
+```{r}
+tbl_trips %>% 
+  head(1000) %>% 
+  group_by(pickup_zip) %>% 
+  summarise(
+    number = n(),
+    mean_fare = mean(fare_amount, na.rm = TRUE),
+    median_fare = media(fare_amount, na.rm = TRUE)
+  )
+```
+
+```{r}
+tbl_trips %>% 
+  head(100) %>% 
+  summarise(x = var(trip_distance, na.rm = TRUE))
+```
