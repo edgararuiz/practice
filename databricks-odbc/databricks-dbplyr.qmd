@@ -1,0 +1,105 @@
+---
+title: Databricks ODBC - dbplyr test
+---
+
+```{r}
+#| include: false
+library(DBI)
+library(dbplyr)
+library(dplyr)
+library(stringr)
+```
+
+```{r}
+library(DBI)
+library(dbplyr)
+library(dplyr)
+```
+
+```{r}
+packageVersion("dbplyr")
+```
+
+```{r}
+con <- dbConnect(
+  odbc::odbc(),
+  Driver = "/Library/simba/spark/lib/libsparkodbc_sb64-universal.dylib",
+  Host = "rstudio-partner-posit-default.cloud.databricks.com",
+  Port = 443,
+  AuthMech = 3,
+  HTTPPath = "/sql/1.0/warehouses/300bd24ba12adf8e",
+  Protocol = "https",
+  ThriftTransport = 2,
+  SSL = 1,
+  UID = "token",
+  PWD = Sys.getenv("DATABRICKS_TOKEN")
+  )
+```
+
+```{r}
+tbl_mtcars <- copy_to(con, mtcars)
+```
+
+```{r}
+tbl_mtcars %>% 
+  show_query()
+```
+
+```{r}
+tbl_mtcars %>% 
+  summarise(
+    var_mpg = var(mpg, na.rm = TRUE),
+    median = median(mpg, na.rm = TRUE)
+  )
+```
+
+```{r}
+tbl_mtcars %>% 
+  filter(mpg == first(mpg))
+```
+
+```{r}
+tbl_mtcars %>% 
+  mutate(trn = ifelse(am == 1, "automatic", "manual")) %>% 
+  group_by(trn) %>% 
+  summarise(
+    var_mpg = var(mpg, na.rm = TRUE),
+    median = median(mpg, na.rm = TRUE)
+  )
+```
+
+```{r}
+#| eval: false
+tbl_mtcars %>% 
+  mutate(trn = ifelse(am == 1, "automatic", "manual")) %>% 
+  mutate(new = str_replace_all(trn, "a", "i"))
+```
+
+```         
+Error in `str_replace_all()`:
+! `str_replace_all()` is not available in this SQL variant.
+Backtrace:
+  1. base (local) `<fn>`(x)
+ 25. dbplyr (local) str_replace_all(trn, "a", "i")
+```
+
+```{r}
+tbl_mtcars %>% 
+  mutate(trn = ifelse(am == 1, "automatic", "manual")) %>% 
+  mutate(no = str_length(trn)) %>% 
+  select(trn, no)
+```
+
+### For `DBI` or `odbc`
+
+`dbListTables()` does not include `mtcars`, I think because it's under the `#temp` schema. This may also be an issue for the RStudio IDE Connection pane
+
+```{r}
+dbGetQuery(con, "select * from #temp.mtcars limit 5")
+```
+
+```{r}
+# Shouldn't `mtcars` be listed here? 
+
+dbListTables(con)
+```

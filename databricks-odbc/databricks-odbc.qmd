@@ -46,11 +46,15 @@ con <- dbConnect(
 dbDisconnect(con)
 ```
 
+# `odbc` / RStudio IDE
+
 ## Problem 1 - Catalog loads correctly, but schema, and tables do not
 
 ![](images/problem1.png)
 
 This is more likely an issue that should be addressed in `odbc`, if at all.
+
+## Problem 2 - Workaround for problem 1 somewhat works
 
 At this time, using the `Catalog` argument will pull schema and tables for that specific catalog. But, it will erroneously pull the exact same schema and tables under the other catalogs.
 
@@ -72,9 +76,9 @@ con <- dbConnect(
 
 ```
 
-![](images/Screenshot%202023-10-18%20at%2012.26.19%20PM.png)
+![](images/problem2.png)
 
-## `dplyr` /`dbplyr`
+# `dplyr` /`dbplyr`
 
 ```{r}
 library(dplyr)
@@ -93,7 +97,10 @@ tbl_trips %>%
   summarise(median_distance = median(trip_distance, na.rm = TRUE))
 ```
 
+## Problem 3 - Windowed functions don't seem to work
+
 ```{r}
+#| eval: false
 tbl_trips %>% 
   head(1000) %>% 
   group_by(pickup_zip) %>% 
@@ -104,8 +111,96 @@ tbl_trips %>%
   )
 ```
 
+```         
+Warning: Named arguments ignored for SQL mediaError in `collect()`:
+! Failed to collect lazy table.
+Caused by error:
+! nanodbc/nanodbc.cpp:1509: 00000: [Simba][Hardy] (80) Syntax or semantic analysis error thrown in server while executing query. Error message from server: org.apache.hive.service.cli.HiveSQLException: Error running query: [PARSE_SYNTAX_ERROR] org.apache.spark.sql.catalyst.parser.ParseException: 
+[PARSE_SYNTAX_ERROR] Syntax error at or near 'AS'.(line 5, pos 28)
+
+== SQL ==
+SELECT
+  `pickup_zip`,
+  COUNT(*) AS `number`,
+  AVG(`fare_amount`) AS `mean_fare`,
+  media(`fare_amount`, TRUE AS `na.rm`) AS `median_fare`
+```
+
+## Problem 4 - Hive specific translation is missing 
+
+This is due the `Spark SQL` connection is not using Hive translation in `dbplyr`
+
 ```{r}
+#| eval: false
 tbl_trips %>% 
   head(100) %>% 
-  summarise(x = var(trip_distance, na.rm = TRUE))
+  summarise(x = var(trip_distance))
+```
+
+```         
+Error in `var()`:
+! `var()` is not available in this SQL variant.
+Backtrace:
+  1. base (local) `<fn>`(x)
+ 23. dbplyr (local) var(trip_distance)
+```
+
+## Problem 5 - `copy_to()` does not work
+
+```{r}
+#| eval: false
+copy_to(con, mtcars)
+
+#Error: nanodbc/nanodbc.cpp:1296: 00000: [Simba][ODBC] (11470) Transactions are not supported.
+```
+
+# `DBI`
+
+## Problem 6 - `dbiWriteTable()`
+
+```{r}
+#| eval: false
+
+dbWriteTable(con, "mtcars", mtcars)
+
+```
+
+```         
+Error: nanodbc/nanodbc.cpp:1691: 00000: [Simba][Hardy] (80) Syntax or semantic analysis error thrown in server while executing query. Error message from server: org.apache.hive.service.cli.HiveSQLException: Error running query: [UC_COMMAND_NOT_SUPPORTED.WITHOUT_RECOMMENDATION] org.apache.spark.sql.AnalysisException: [UC_COMMAND_NOT_SUPPORTED.WITHOUT_RECOMMENDATION] The command(s): Create sample tables/views are not supported in Unity Catalog. 
+	at org.apache.spark.sql.hive.thriftserver.HiveThriftServerErrors$.runningQueryError
+```
+
+Even with `temporary` set to `TRUE` it still fails
+
+```{r}
+#| eval: false
+
+dbWriteTable(con, "mtcars", mtcars, temporary = TRUE)
+
+```
+
+```         
+Error: nanodbc/nanodbc.cpp:1691: 00000: [Simba][Hardy] (80) Syntax or semantic analysis error thrown in server while executing query. Error message from server: org.apache.hive.service.cli.HiveSQLException: Error running query: [_LEGACY_ERROR_TEMP_0046] org.apache.spark.sql.catalyst.parser.ParseException: 
+CREATE TEMPORARY TABLE without a provider is not allowed.(line 1, pos 0)
+
+== SQL ==
+CREATE TEMPORARY TABLE `mtcars` (
+^^^
+  `row_names` VARCHAR(255),
+  `mpg` DOUBLE,
+  `cyl` DOUBLE,
+  `disp` DOUBLE,
+  `hp` DOUBLE,
+  `drat` DOUBLE,
+  `wt` DOUBLE,
+  `qsec` DOUBLE,
+  `vs` DOUBLE,
+  `am` DOUBLE,
+  `gear` DOUBLE,
+  `carb` DOUBLE
+)
+```
+
+```{r}
+dbDisconnect(con)
 ```
