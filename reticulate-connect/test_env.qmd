@@ -1,0 +1,29 @@
+---
+title: "Test env var"
+format: html
+editor: visual
+---
+
+```{r}
+library(reticulate)
+```
+
+```{r}
+py_available()
+```
+
+```{r}
+Sys.getenv("RETICULATE_PYTHON")
+```
+
+```{r}
+py_config()
+```
+
+```{r}
+py_exe()
+```
+
+```{r}
+py_available()
+```

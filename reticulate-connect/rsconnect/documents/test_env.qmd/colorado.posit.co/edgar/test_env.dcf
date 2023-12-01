@@ -1,0 +1,15 @@
+name: test_env
+title: test_env
+username: edgar
+account: edgar
+server: colorado.posit.co
+hostUrl: https://colorado.posit.co/rsc/__api__
+appId: 18817
+bundleId: 85123
+url: https://colorado.posit.co/rsc/content/f476aaf2-1d90-41ef-b155-851eb693a1d0/
+when: 1701470931.76313
+lastSyncTime: 1701470931.76314
+quarto_version: 1.3.450
+quarto_engines: knitr
+asMultiple: FALSE
+asStatic: FALSE
