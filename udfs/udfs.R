@@ -16,3 +16,21 @@ udf <- df$select(new_func(sel_col))$toPandas()
 head(udf[[1]])
 spark_disconnect(sc)
 pysparklyr::spark_connect_service_stop()
+
+library(dbplyr)
+library(dplyr)
+library(sparklyr)
+library(reticulate)
+sc <- spark_connect(
+  method = "databricks_connect",
+  cluster_id = "1026-175310-7cpsh3g8"
+)
+tbl_trips <- tbl(sc, in_catalog("samples", "nyctaxi", "trips"))
+r_func <- py_func(function(x) x + 100)
+pd_trips <- tbl_trips[[1]]$session
+pyspark <- import("pyspark")
+sel_col <- pyspark$sql$functions$col("trip_distance")
+run_udf <- pd_trips$select(r_func(sel_col))
+pd_udf <- run_udf$toPandas()
+head(pd_udf)
+spark_disconnect(sc)
