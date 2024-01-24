@@ -1,13 +1,16 @@
+remotes::install_github("mlverse/pysparklyr", ref = "updates")
 library(reticulate)
 library(sparklyr)
 pysparklyr::spark_connect_service_start()
 sc <- spark_connect("sc://localhost", method = "spark_connect", version = "3.5")
 spark <- sc$session
-spark$conf$set("spark.sql.execution.arrow.pyspark.enabled", "true")
-spark$conf$set("spark.sql.execution.arrow.pyspark.fallback.enabled", "false")
 np <- import("numpy")
 pd <- import("pandas")
+pyspark <- import("pyspark")
 pdf <- pd$DataFrame(np$random$rand(100L, 3L))
 df <- spark$createDataFrame(pdf)
-result_pdf <- df$select("*")$toPandas()
-result_pdf
+new_func <- py_func(function(x) x + 1)
+sel_col <- pyspark$sql$functions$col("2")
+df$select(new_func(sel_col))
+
+
