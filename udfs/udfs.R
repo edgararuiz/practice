@@ -11,6 +11,6 @@ pdf <- pd$DataFrame(np$random$rand(100L, 3L))
 df <- spark$createDataFrame(pdf)
 new_func <- py_func(function(x) x + 1)
 sel_col <- pyspark$sql$functions$col("2")
-df$select(new_func(sel_col))
+df$select(new_func(sel_col))$toPandas()
 
 
