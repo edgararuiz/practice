@@ -45,11 +45,6 @@ pd_mtcars <- tbl_mtcars[[1]]$session
 pd_grouped <- pd_mtcars$groupby("am")
 source_python("/Users/edgar/r_projects/practice/udfs/main.py")
 main <- reticulate::import_main()
-pd_grouped$applyInPandas(main$r_apply, schema = pd_mtcars$schema)$show()
-
-
-pd_mtcars$mapInArrow(main$filter_func, schema = pd_mtcars$schema)$show()
-
-pd_grouped$applyInPandas(main$mean_udf, schema = pd_mtcars$schema)$show()
-
-pd_grouped$applyInPandas(main$subtract_mean, schema = pd_mtcars$schema)$show()
+pd_grouped$applyInPandas(main$r_apply, schema = "id long")$show()
+spark_disconnect(sc)
+pysparklyr::spark_connect_service_stop()
