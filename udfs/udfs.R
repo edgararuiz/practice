@@ -92,7 +92,9 @@ pd_grouped <- pd_mtcars$groupby("am")
 new_mean <- function(x) np$mean(x$mpg)
 new_mean <- py_func(function(x) np$mean(x$mpg))
 
-pd_grouped$applyInPandas(new_mean, schema = pd_mtcars$schema)
+main <- reticulate::import_main()
+
+pd_grouped$applyInPandas(main$subtract_mean, schema = pd_mtcars$schema)$show()
 pysparklyr::spark_connect_service_stop()
 spark_disconnect(sc)
 np$mean(1:3)
