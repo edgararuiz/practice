@@ -40,11 +40,37 @@ Sys.setenv("PYTHON_VERSION_MISMATCH" = "/Users/edgar/.virtualenvs/r-sparklyr-pys
 Sys.setenv("PYSPARK_DRIVER_PYTHON" = "/Users/edgar/.virtualenvs/r-sparklyr-pyspark-3.5/bin/python")
 pysparklyr::spark_connect_service_start()
 sc <- spark_connect("sc://localhost", method = "spark_connect", version = "3.5")
+# sc <- spark_connect(method = "databricks_connect", cluster_id = "1026-175310-7cpsh3g8")
 tbl_mtcars <- copy_to(sc, mtcars)
 pd_mtcars <- tbl_mtcars[[1]]$session
 pd_grouped <- pd_mtcars$groupby("am")
-source_python("/Users/edgar/r_projects/practice/udfs/main.py")
+fn <- rlang::expr_text(purrr::as_mapper(~ mean(.x$mpg) - 2)) 
+py_run_string(
+paste0("import pandas as pd
+import rpy2.robjects as robjects
+from rpy2.robjects import pandas2ri
+def r_apply(key, pdf: pd.DataFrame) -> pd.DataFrame:
+  pandas2ri.activate()
+  r_func =robjects.r(\"", fn,"\")
+  ret = r_func(pdf)
+  return pd.DataFrame(ret)
+"))
 main <- reticulate::import_main()
 pd_grouped$applyInPandas(main$r_apply, schema = "id long")$show()
 spark_disconnect(sc)
 pysparklyr::spark_connect_service_stop()
+
+
+library(dplyr)
+
+
+library(rlang)
+test_func <- function(.x, .f, ...) {
+  new_f <- purrr::as_mapper(.f, ...)
+  new_f
+}
+f1 <- test_func(mtcars, ~ mean(.x$mpg) - 2) 
+f2 <- test_func(mtcars, sd, na.rm = FALSE)
+
+as_function(f1)
+rlang::expr_text(f2)
