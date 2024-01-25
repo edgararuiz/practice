@@ -67,14 +67,32 @@ pd_grouped$applyInPandas(r_func, pd_mtcars$schema)
 
 library(reticulate)
 library(sparklyr)
+Sys.setenv("PYTHON_VERSION_MISMATCH" = "/Users/edgar/.virtualenvs/r-sparklyr-pyspark-3.5/bin/python")
+Sys.setenv("PYSPARK_DRIVER_PYTHON" = "/Users/edgar/.virtualenvs/r-sparklyr-pyspark-3.5/bin/python")
 pysparklyr::spark_connect_service_start()
 sc <- spark_connect("sc://localhost", method = "spark_connect", version = "3.5")
-tbl_mtcars <- copy_to(sc, mtcars)
 
-orig_func <- function(x) return(head(x))
-r_func <- py_func(orig_func)
-pd_grouped$applyInPandas(r_func, pd_mtcars$schema)
+library(reticulate)
+#py_install("rpy2")
+rpy2 <- import("rpy2")
+rpy2$robjects$pandas2ri$activate()
+r_source <- rpy2$robjects$r("source")
+r_sourced <- r_source("/Users/edgar/r_projects/practice/udfs/addthree.R")
+
+rpy2$robjects$pandas2ri$rinterface("addthree")
+addthree <- rpy2$robjects$r("addthree")
+
+pyspark <- import("pyspark")
+sel_col <- pyspark$sql$functions$col("mpg")
+np <- import("numpy")
+tbl_mtcars <- copy_to(sc, mtcars)
 pd_mtcars <- tbl_mtcars[[1]]$session
 pd_grouped <- pd_mtcars$groupby("am")
-r_func <- py_func(function(x)x$count())
-pd_grouped$applyInPandas(r_func, schema =  pd_mtcars$schema)
+
+new_mean <- function(x) np$mean(x$mpg)
+new_mean <- py_func(function(x) np$mean(x$mpg))
+
+pd_grouped$applyInPandas(new_mean, schema = pd_mtcars$schema)
+pysparklyr::spark_connect_service_stop()
+spark_disconnect(sc)
+np$mean(1:3)
