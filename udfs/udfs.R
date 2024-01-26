@@ -43,8 +43,11 @@ sc <- spark_connect("sc://localhost", method = "spark_connect", version = "3.5")
 # sc <- spark_connect(method = "databricks_connect", cluster_id = "1026-175310-7cpsh3g8")
 tbl_mtcars <- copy_to(sc, mtcars)
 pd_mtcars <- tbl_mtcars[[1]]$session
-pd_grouped <- pd_mtcars$groupby("am")
-fn <- purrr::as_mapper(~ mean(.x$mpg) - 2)
+
+pd_mtcars <- pd_mtcars$withColumn("_am", pd_mtcars$am)
+pd_grouped <- pd_mtcars$groupby("_am")
+
+fn <- purrr::as_mapper(~ data.frame(x = head(.x$am, 1), y = mean(.x$mpg)))
 fn <- rlang::expr_text(fn) 
 fn <- paste0(unlist(strsplit(fn, "\n")), collapse = "")
 wr <- paste0("function(...){x <- ", fn,"; x(...)}")
@@ -60,7 +63,9 @@ def r_apply(key, pdf: pd.DataFrame) -> pd.DataFrame:
   return pd.DataFrame(ret)
 "))
 main <- reticulate::import_main()
-pd_grouped$applyInPandas(main$r_apply, schema = "id long")$show()
+pd_grouped$applyInPandas(main$r_apply, schema = "x long")$show()
+
+
 spark_disconnect(sc)
 pysparklyr::spark_connect_service_stop()
 
