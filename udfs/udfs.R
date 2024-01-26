@@ -47,7 +47,7 @@ pd_mtcars <- tbl_mtcars[[1]]$session
 pd_mtcars <- pd_mtcars$withColumn("_am", pd_mtcars$am)
 pd_grouped <- pd_mtcars$groupby("_am")
 
-fn <- purrr::as_mapper(~ data.frame(x = head(.x$am, 1), y = mean(.x$mpg)))
+fn <- purrr::as_mapper(~ data.frame(x = .x$am[1], y = mean(.x$mpg)))
 fn <- rlang::expr_text(fn) 
 fn <- paste0(unlist(strsplit(fn, "\n")), collapse = "")
 wr <- paste0("function(...){x <- ", fn,"; x(...)}")
@@ -60,10 +60,10 @@ def r_apply(key, pdf: pd.DataFrame) -> pd.DataFrame:
   pandas2ri.activate()
   r_func =robjects.r(\"", wr, "\")
   ret = r_func(pdf)
-  return pd.DataFrame(ret)
+  return pandas2ri.rpy2py_dataframe(ret)
 "))
 main <- reticulate::import_main()
-pd_grouped$applyInPandas(main$r_apply, schema = "x long")$show()
+pd_grouped$applyInPandas(main$r_apply, schema = "x long, y double")$show()
 
 
 spark_disconnect(sc)
