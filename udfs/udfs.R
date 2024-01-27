@@ -47,33 +47,17 @@ pd_mtcars <- tbl_mtcars[[1]]$session
 pd_mtcars <- pd_mtcars$withColumn("_am", pd_mtcars$am)
 pd_grouped <- pd_mtcars$groupby("_am")
 
-fn <- purrr::as_mapper(~ data.frame(x = .x$am[1], y = mean(.x$mpg)))
-fn <- paste0(deparse(fn), collapse = "")
-wr <- paste0("function(...){x <- ", fn,"; x(...)}")
-wr <- gsub("\"", "'", wr)
-
-sa_function_output <- function() {
-  library(arrow);
-  function(...) {
-    x <- function() 1;
-    as.data.frame(x(...))
-  }
-}
-deparse(sa_function_output)
-
-fn_output <- paste0(deparse(sa_function_output), collapse = "")
-
 sa_function_to_string <- function(.f, ...) {
-  fn_output <- paste0(deparse(sa_function_output), collapse = "")
+  fn_output <- paste0(readLines(here::here("udfs/udf-function.R")), collapse = "")
   fn <- purrr::as_mapper(.f = .f, ... = ...)
   str_fn <- paste0(deparse(fn), collapse = "")
-  ret <- gsub("function\\(\\) 1", str_fn, fn_output)
+  ret <- gsub("function\\(\\.\\.\\.\\) 1", str_fn, fn_output)
   gsub("\"", "'", ret)
 }
 
 #sa_function_to_string(~ data.frame(x = .x$am[1], y = mean(.x$mpg)))
 #wr <- sa_function_to_string(nrow, na.rm = TRUE)
-wr <- sa_function_to_string(function(e) summary(lm(wt ~ ., e))$r.squared)
+wr <- sa_function_to_string(function(e) summary(lm(mpg ~ ., e))$r.squared)
 wr
 py_run_string(
 paste0("import pandas as pd
@@ -86,9 +70,9 @@ def r_apply(key, pdf: pd.DataFrame) -> pd.DataFrame:
   return pandas2ri.rpy2py_dataframe(ret)
 "))
 main <- reticulate::import_main()
-pd_grouped$applyInPandas(main$r_apply, schema = "x tinyint, y double")$show()
+pd_grouped$applyInPandas(main$r_apply, schema = "x double")$show()
 
-
+  
 spark_disconnect(sc)
 pysparklyr::spark_connect_service_stop()
 
