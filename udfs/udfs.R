@@ -52,21 +52,29 @@ fn <- paste0(deparse(fn), collapse = "")
 wr <- paste0("function(...){x <- ", fn,"; x(...)}")
 wr <- gsub("\"", "'", wr)
 
+sa_function_output <- function() {
+  library(arrow);
+  function(...) {
+    x <- function() 1;
+    as.data.frame(x(...))
+  }
+}
+deparse(sa_function_output)
+
+fn_output <- paste0(deparse(sa_function_output), collapse = "")
+
 sa_function_to_string <- function(.f, ...) {
+  fn_output <- paste0(deparse(sa_function_output), collapse = "")
   fn <- purrr::as_mapper(.f = .f, ... = ...)
   str_fn <- paste0(deparse(fn), collapse = "")
-  if(inherits(fn, "rlang_lambda_function")) {
-    ret <- paste0("function(...){x <- ", str_fn,"; x(...)}")
-  } else {
-    ret <- str_fn
-  }
-  ret <- paste0("library(arrow);as.data.frame(", ret, ")")
+  ret <- gsub("function\\(\\) 1", str_fn, fn_output)
   gsub("\"", "'", ret)
 }
 
-sa_function_to_string(~ data.frame(x = .x$am[1], y = mean(.x$mpg)))
-wr <- sa_function_to_string(nrow, na.rm = TRUE)
+#sa_function_to_string(~ data.frame(x = .x$am[1], y = mean(.x$mpg)))
+#wr <- sa_function_to_string(nrow, na.rm = TRUE)
 wr <- sa_function_to_string(function(e) summary(lm(wt ~ ., e))$r.squared)
+wr
 py_run_string(
 paste0("import pandas as pd
 import rpy2.robjects as robjects
@@ -98,3 +106,6 @@ f2 <- test_func(mtcars, sd, na.rm = FALSE)
 
 as_function(f1)
 rlang::expr_text(f2)
+
+test1 <- function(e) summary(lm(wt ~ ., e))$r.squared
+as.data.frame(test1(mtcars))
