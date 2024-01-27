@@ -33,7 +33,7 @@ pd_udf <- run_udf$toPandas()
 head(pd_udf)
 spark_disconnect(sc)
 
-
+library(fs)
 library(reticulate)
 library(sparklyr)
 Sys.setenv("PYTHON_VERSION_MISMATCH" = "/Users/edgar/.virtualenvs/r-sparklyr-pyspark-3.5/bin/python")
@@ -48,11 +48,22 @@ pd_mtcars <- pd_mtcars$withColumn("_am", pd_mtcars$am)
 pd_grouped <- pd_mtcars$groupby("_am")
 
 sa_function_to_string <- function(.f, ...) {
-  fn_output <- paste0(readLines(here::here("udfs/udf-function.R")), collapse = "")
+  path_scripts <- here::here("udfs")
+  fn_r <- paste0(
+    readLines(path(path_scripts, "udf-function.R")),
+    collapse = ""
+    )
+  fn_python <- paste0(
+    readLines(path(path_scripts, "udf-function.py")),
+    collapse = ""
+  )
   fn <- purrr::as_mapper(.f = .f, ... = ...)
-  str_fn <- paste0(deparse(fn), collapse = "")
-  ret <- gsub("function\\(\\.\\.\\.\\) 1", str_fn, fn_output)
-  gsub("\"", "'", ret)
+  fn_str <- paste0(deparse(fn), collapse = "")
+  fn_r_new <- gsub("function\\(\\.\\.\\.\\) 1", fn_str, fn_r)
+  
+  
+  
+  #gsub("\"", "'", ret)
 }
 
 #sa_function_to_string(~ data.frame(x = .x$am[1], y = mean(.x$mpg)))
