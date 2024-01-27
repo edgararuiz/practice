@@ -48,10 +48,25 @@ pd_mtcars <- pd_mtcars$withColumn("_am", pd_mtcars$am)
 pd_grouped <- pd_mtcars$groupby("_am")
 
 fn <- purrr::as_mapper(~ data.frame(x = .x$am[1], y = mean(.x$mpg)))
-fn <- rlang::expr_text(fn) 
-fn <- paste0(unlist(strsplit(fn, "\n")), collapse = "")
+fn <- paste0(deparse(fn), collapse = "")
 wr <- paste0("function(...){x <- ", fn,"; x(...)}")
 wr <- gsub("\"", "'", wr)
+
+sa_function_to_string <- function(.f, ...) {
+  fn <- purrr::as_mapper(.f = .f, ... = ...)
+  str_fn <- paste0(deparse(fn), collapse = "")
+  if(inherits(fn, "rlang_lambda_function")) {
+    ret <- paste0("function(...){x <- ", str_fn,"; x(...)}")
+  } else {
+    ret <- str_fn
+  }
+  ret <- paste0("library(arrow);as.data.frame(", ret, ")")
+  gsub("\"", "'", ret)
+}
+
+sa_function_to_string(~ data.frame(x = .x$am[1], y = mean(.x$mpg)))
+wr <- sa_function_to_string(nrow, na.rm = TRUE)
+wr <- sa_function_to_string(function(e) summary(lm(wt ~ ., e))$r.squared)
 py_run_string(
 paste0("import pandas as pd
 import rpy2.robjects as robjects
@@ -63,7 +78,7 @@ def r_apply(key, pdf: pd.DataFrame) -> pd.DataFrame:
   return pandas2ri.rpy2py_dataframe(ret)
 "))
 main <- reticulate::import_main()
-pd_grouped$applyInPandas(main$r_apply, schema = "x long, y double")$show()
+pd_grouped$applyInPandas(main$r_apply, schema = "x tinyint, y double")$show()
 
 
 spark_disconnect(sc)
