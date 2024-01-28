@@ -56,15 +56,15 @@ sa_function_to_string <- function(.f, ...) {
     collapse = ""
     )
   fn_python <- paste0(
-    readLines(path(path_scripts, "udf-function.py")), collapse = "\n"
+    readLines(path(path_scripts, "udf-function.py")), 
+    collapse = "\n"
   )
   fn <- purrr::as_mapper(.f = .f, ... = ...)
   fn_str <- paste0(deparse(fn), collapse = "")
   fn_r_new <- gsub("function\\(\\.\\.\\.\\) 1", fn_str, fn_r)
   gsub("function\\(\\.\\.\\.\\) 1", fn_r_new, fn_python)
 }
-wr <- sa_function_to_string(function(e) summary(lm(mpg ~ ., e))$r.squared)
-wr
+wr <- sa_function_to_string(function(e) summary(lm(wt ~ ., e))$r.squared)
 py_run_string(wr)
 main <- reticulate::import_main()
 pd_grouped$applyInPandas(main$r_apply, schema = "x double")$show()
