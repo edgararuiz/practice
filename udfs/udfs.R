@@ -61,32 +61,24 @@ sa_function_to_string <- function(.f, ...) {
   )
   fn <- purrr::as_mapper(.f = .f, ... = ...)
   fn_str <- paste0(deparse(fn), collapse = "")
-  fn_r_new <- gsub("function\\(\\.\\.\\.\\) 1", fn_str, fn_r)
-  gsub("function\\(\\.\\.\\.\\) 1", fn_r_new, fn_python)
+  fn_rep <- "function\\(\\.\\.\\.\\) 1"
+  fn_r_new <- gsub(fn_rep, fn_str, fn_r)
+  gsub(fn_rep, fn_r_new, fn_python)
 }
-wr <- sa_function_to_string(function(e) summary(lm(wt ~ ., e))$r.squared)
-py_run_string(wr)
-main <- reticulate::import_main()
-pd_grouped$applyInPandas(main$r_apply, schema = "x double")$show()
 
-  
+sa_pandas_grouped <- function(grouped_tbl, .f, ..., .schema = "x double") {
+  fn <- sa_function_to_string(.f = .f, ... = ...)
+  py_run_string(fn)
+  main <- reticulate::import_main()
+  grouped_tbl$applyInPandas(main$r_apply, schema = .schema)$show()
+}
+
+pd_grouped %>% 
+  sa_pandas_grouped(function(e) summary(lm(wt ~ ., e))$r.squared)
+
+pd_grouped %>% 
+  sa_pandas_grouped(function(e) mean(e$mpg))
+
 spark_disconnect(sc)
 pysparklyr::spark_connect_service_stop()
 
-
-library(dplyr)
-
-
-library(rlang)
-test_func <- function(.x, .f, ...) {
-  new_f <- purrr::as_mapper(.f, ...)
-  new_f
-}
-f1 <- test_func(mtcars, ~ mean(.x$mpg) - 2) 
-f2 <- test_func(mtcars, sd, na.rm = FALSE)
-
-as_function(f1)
-rlang::expr_text(f2)
-
-test1 <- function(e) summary(lm(wt ~ ., e))$r.squared
-as.data.frame(test1(mtcars))
