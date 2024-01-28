@@ -61,6 +61,14 @@ sa_function_to_string <- function(.f, ...) {
   )
   fn <- purrr::as_mapper(.f = .f, ... = ...)
   fn_str <- paste0(deparse(fn), collapse = "")
+  if(inherits(fn, "rlang_lambda_function")) {
+    fn_str <- paste0(
+      "function(...) {x <- (",
+      fn_str,
+      "); x(...)}"
+    )
+  }
+  fn_str <- gsub("\"", "'", fn_str)
   fn_rep <- "function\\(\\.\\.\\.\\) 1"
   fn_r_new <- gsub(fn_rep, fn_str, fn_r)
   gsub(fn_rep, fn_r_new, fn_python)
@@ -74,10 +82,19 @@ sa_pandas_grouped <- function(grouped_tbl, .f, ..., .schema = "x double") {
 }
 
 pd_grouped %>% 
+  sa_pandas_grouped(~ mean(.x$mpg))
+
+pd_grouped %>% 
   sa_pandas_grouped(function(e) summary(lm(wt ~ ., e))$r.squared)
 
 pd_grouped %>% 
-  sa_pandas_grouped(function(e) mean(e$mpg))
+  sa_pandas_grouped(function(e) mean(e$mpg)) 
+
+pd_grouped %>% 
+  sa_pandas_grouped(~ head(.x))
+
+sa_function_to_string(~ mean(.x$mpg))%>% 
+  cat()
 
 spark_disconnect(sc)
 pysparklyr::spark_connect_service_stop()
