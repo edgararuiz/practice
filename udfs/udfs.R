@@ -33,6 +33,8 @@ pd_udf <- run_udf$toPandas()
 head(pd_udf)
 spark_disconnect(sc)
 
+
+
 library(fs)
 library(reticulate)
 library(sparklyr)
@@ -54,32 +56,16 @@ sa_function_to_string <- function(.f, ...) {
     collapse = ""
     )
   fn_python <- paste0(
-    readLines(path(path_scripts, "udf-function.py")),
-    collapse = ""
+    readLines(path(path_scripts, "udf-function.py")), collapse = "\n"
   )
   fn <- purrr::as_mapper(.f = .f, ... = ...)
   fn_str <- paste0(deparse(fn), collapse = "")
   fn_r_new <- gsub("function\\(\\.\\.\\.\\) 1", fn_str, fn_r)
-  
-  
-  
-  #gsub("\"", "'", ret)
+  gsub("function\\(\\.\\.\\.\\) 1", fn_r_new, fn_python)
 }
-
-#sa_function_to_string(~ data.frame(x = .x$am[1], y = mean(.x$mpg)))
-#wr <- sa_function_to_string(nrow, na.rm = TRUE)
 wr <- sa_function_to_string(function(e) summary(lm(mpg ~ ., e))$r.squared)
 wr
-py_run_string(
-paste0("import pandas as pd
-import rpy2.robjects as robjects
-from rpy2.robjects import pandas2ri
-def r_apply(key, pdf: pd.DataFrame) -> pd.DataFrame:
-  pandas2ri.activate()
-  r_func =robjects.r(\"", wr, "\")
-  ret = r_func(pdf)
-  return pandas2ri.rpy2py_dataframe(ret)
-"))
+py_run_string(wr)
 main <- reticulate::import_main()
 pd_grouped$applyInPandas(main$r_apply, schema = "x double")$show()
 
