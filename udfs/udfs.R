@@ -46,8 +46,7 @@ sc <- spark_connect("sc://localhost", method = "spark_connect", version = "3.5")
 tbl_mtcars <- copy_to(sc, mtcars)
 pd_mtcars <- tbl_mtcars[[1]]$session
 
-pd_mtcars <- pd_mtcars$withColumn("_am", pd_mtcars$am)
-pd_grouped <- pd_mtcars$groupby("_am")
+pd_grouped <- pd_mtcars$groupby("am")
 
 sa_function_to_string <- function(.f, ...) {
   path_scripts <- here::here("udfs")
@@ -74,18 +73,34 @@ sa_function_to_string <- function(.f, ...) {
   gsub(fn_rep, fn_r_new, fn_python)
 }
 
-sa_pandas_grouped <- function(grouped_tbl, .f, ..., .schema = "x double") {
+sa_pandas_grouped <- function(x, .f, ..., .schema = "x double", group_by = NULL) {
   fn <- sa_function_to_string(.f = .f, ... = ...)
   py_run_string(fn)
   main <- reticulate::import_main()
-  grouped_tbl$applyInPandas(main$r_apply, schema = .schema)$show()
+  if(!is.null(group_by)) {
+    df <- x[[1]]$session
+    
+    grouped_tbl$applyInPandas(main$r_apply, schema = .schema)$toPandas()  
+  } else {
+    stop("group_by = NULL is not supported yet") 
+  }
+  
 }
+
+main <- reticulate::import_main()
+
+pd_mtcars$mapInPandas(main$r_apply, schema = "x double")$toPandas()
 
 pd_grouped %>% 
   sa_pandas_grouped(~ mean(.x$mpg))
 
-pd_grouped %>% 
+pd_mtcars$groupby("cyl") %>% 
   sa_pandas_grouped(function(e) summary(lm(wt ~ ., e))$r.squared)
+
+pd_grouped$apply(main$r_apply)
+
+pd_grouped %>% 
+  sa_pandas_grouped(~ summary(lm(.$wt ~ ., .x)$r.squared))
 
 pd_grouped %>% 
   sa_pandas_grouped(function(e) mean(e$mpg)) 
