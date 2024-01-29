@@ -98,7 +98,7 @@ sa_pandas_grouped <- function(x, .f, ..., .schema = "x double", .group_by = NULL
 }
 
 tbl_mtcars %>% 
-  sa_pandas_grouped(~ mean(.x$mpg), .group_by = "cyl", .schema = "am long, x double")
+  sa_pandas_grouped(~ mean(.x$mpg), .group_by = "cyl", .schema = "cyl long, x double")
 
 tbl_mtcars %>% 
   sa_pandas_grouped(function(e) summary(lm(wt ~ ., e))$r.squared, .group_by = "cyl", .schema = "am long, x double" )
