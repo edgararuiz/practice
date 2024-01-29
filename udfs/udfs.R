@@ -48,12 +48,17 @@ pd_mtcars <- tbl_mtcars[[1]]$session
 
 pd_grouped <- pd_mtcars$groupby("am")
 
-sa_function_to_string <- function(.f, ...) {
+sa_function_to_string <- function(.f, .group_by, ...) {
   path_scripts <- here::here("udfs")
   fn_r <- paste0(
     readLines(path(path_scripts, "udf-function.R")),
     collapse = ""
     )
+  fn_r <- gsub(
+    "gp_field <- 'am'",
+    paste0("gp_field <- '", .group_by,"'"),
+    fn_r
+  )  
   fn_python <- paste0(
     readLines(path(path_scripts, "udf-function.py")), 
     collapse = "\n"
@@ -73,29 +78,30 @@ sa_function_to_string <- function(.f, ...) {
   gsub(fn_rep, fn_r_new, fn_python)
 }
 
-sa_pandas_grouped <- function(x, .f, ..., .schema = "x double", group_by = NULL) {
-  fn <- sa_function_to_string(.f = .f, ... = ...)
-  py_run_string(fn)
-  main <- reticulate::import_main()
-  if(!is.null(group_by)) {
-    renamed_gp <- paste0("_", group_by)
+sa_pandas_grouped <- function(x, .f, ..., .schema = "x double", .group_by = NULL) {
+  if(!is.null(.group_by)) {
+    
+    fn <- sa_function_to_string(.f = .f, .group_by = .group_by, ... = ...)
+    py_run_string(fn)
+    main <- reticulate::import_main()
+    
+    #TODO: Add support for multiple grouping columns
+    renamed_gp <- paste0("_", .group_by)
     df <- x[[1]]$session
-    w_gp <- df$withColumn(colName = renamed_gp, col = df[group_by])
+    w_gp <- df$withColumn(colName = renamed_gp, col = df[.group_by])
     tbl_gp <- w_gp$groupby(renamed_gp)
-    tbl_gp$applyInPandas(main$r_apply, schema = .schema)$toPandas()  
+    ret <- tbl_gp$applyInPandas(main$r_apply, schema = .schema)$toPandas()  
   } else {
-    stop("group_by = NULL is not supported yet") 
+    stop(".group_by = NULL is not supported yet") 
   }
-  
+  ret
 }
 
-main <- reticulate::import_main()
+tbl_mtcars %>% 
+  sa_pandas_grouped(~ mean(.x$mpg), .group_by = "cyl", .schema = "am long, x double")
 
 tbl_mtcars %>% 
-  sa_pandas_grouped(~ mean(.x$mpg), group_by = "cyl")
-
-pd_mtcars$groupby("cyl") %>% 
-  sa_pandas_grouped(function(e) summary(lm(wt ~ ., e))$r.squared)
+  sa_pandas_grouped(function(e) summary(lm(wt ~ ., e))$r.squared, .group_by = "cyl", .schema = "am long, x double" )
 
 pd_grouped$apply(main$r_apply)
 
