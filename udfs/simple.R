@@ -1,10 +1,10 @@
 library(reticulate)
 library(sparklyr)
-Sys.setenv("PYTHON_VERSION_MISMATCH" = "/Users/edgar/.virtualenvs/r-sparklyr-pyspark-3.5/bin/python")
-Sys.setenv("PYSPARK_DRIVER_PYTHON" = "/Users/edgar/.virtualenvs/r-sparklyr-pyspark-3.5/bin/python")
-pysparklyr::spark_connect_service_start()
-sc <- spark_connect("sc://localhost", method = "spark_connect", version = "3.5")
-# sc <- spark_connect(method = "databricks_connect", cluster_id = "1026-175310-7cpsh3g8")
+# Sys.setenv("PYTHON_VERSION_MISMATCH" = "/Users/edgar/.virtualenvs/r-sparklyr-pyspark-3.5/bin/python")
+# Sys.setenv("PYSPARK_DRIVER_PYTHON" = "/Users/edgar/.virtualenvs/r-sparklyr-pyspark-3.5/bin/python")
+# pysparklyr::spark_connect_service_start()
+# sc <- spark_connect("sc://localhost", method = "spark_connect", version = "3.5")
+sc <- spark_connect(method = "databricks_connect", cluster_id = "1026-175310-7cpsh3g8")
 tbl_mtcars <- copy_to(sc, mtcars)
 pd_mtcars <- tbl_mtcars[[1]]$session
 
