@@ -78,9 +78,11 @@ sa_pandas_grouped <- function(x, .f, ..., .schema = "x double", group_by = NULL)
   py_run_string(fn)
   main <- reticulate::import_main()
   if(!is.null(group_by)) {
+    renamed_gp <- paste0("_", group_by)
     df <- x[[1]]$session
-    
-    grouped_tbl$applyInPandas(main$r_apply, schema = .schema)$toPandas()  
+    w_gp <- df$withColumn(colName = renamed_gp, col = df[group_by])
+    tbl_gp <- w_gp$groupby(renamed_gp)
+    tbl_gp$applyInPandas(main$r_apply, schema = .schema)$toPandas()  
   } else {
     stop("group_by = NULL is not supported yet") 
   }
@@ -89,10 +91,8 @@ sa_pandas_grouped <- function(x, .f, ..., .schema = "x double", group_by = NULL)
 
 main <- reticulate::import_main()
 
-pd_mtcars$mapInPandas(main$r_apply, schema = "x double")$toPandas()
-
-pd_grouped %>% 
-  sa_pandas_grouped(~ mean(.x$mpg))
+tbl_mtcars %>% 
+  sa_pandas_grouped(~ mean(.x$mpg), group_by = "cyl")
 
 pd_mtcars$groupby("cyl") %>% 
   sa_pandas_grouped(function(e) summary(lm(wt ~ ., e))$r.squared)
