@@ -48,21 +48,33 @@ pd_mtcars <- tbl_mtcars[[1]]$session
 
 pd_grouped <- pd_mtcars$groupby("am")
 
-sa_function_to_string <- function(.f, .group_by, ...) {
+sa_function_to_string <- function(.f, .group_by = NULL, ...) {
   path_scripts <- here::here("udfs")
-  fn_r <- paste0(
-    readLines(path(path_scripts, "udf-function.R")),
-    collapse = ""
+  if(!is.null(.group_by)) {
+    fn_r <- paste0(
+      readLines(path(path_scripts, "udf-apply.R")),
+      collapse = ""
     )
-  fn_r <- gsub(
-    "gp_field <- 'am'",
-    paste0("gp_field <- '", .group_by,"'"),
-    fn_r
-  )  
-  fn_python <- paste0(
-    readLines(path(path_scripts, "udf-function.py")), 
-    collapse = "\n"
-  )
+    fn_r <- gsub(
+      "gp_field <- 'am'",
+      paste0("gp_field <- '", .group_by,"'"),
+      fn_r
+    )     
+    fn_python <- paste0(
+      readLines(path(path_scripts, "udf-apply.py")), 
+      collapse = "\n"
+    )
+  } else {
+    fn_r <- paste0(
+      readLines(path(path_scripts, "udf-map.R")),
+      collapse = ""
+    )
+    fn_python <- paste0(
+      readLines(path(path_scripts, "udf-map.py")), 
+      collapse = "\n"
+    )
+  }
+  
   fn <- purrr::as_mapper(.f = .f, ... = ...)
   fn_str <- paste0(deparse(fn), collapse = "")
   if(inherits(fn, "rlang_lambda_function")) {
@@ -79,26 +91,30 @@ sa_function_to_string <- function(.f, .group_by, ...) {
 }
 
 sa_pandas_grouped <- function(x, .f, ..., .schema = "x double", .group_by = NULL) {
+  
+  fn <- sa_function_to_string(.f = .f, .group_by = .group_by, ... = ...)
+  py_run_string(fn)
+  main <- reticulate::import_main()
+  df <- x[[1]]$session
+  cat(fn)
+  cat("")
   if(!is.null(.group_by)) {
-    
-    fn <- sa_function_to_string(.f = .f, .group_by = .group_by, ... = ...)
-    py_run_string(fn)
-    main <- reticulate::import_main()
-    
     #TODO: Add support for multiple grouping columns
     renamed_gp <- paste0("_", .group_by)
-    df <- x[[1]]$session
     w_gp <- df$withColumn(colName = renamed_gp, col = df[.group_by])
     tbl_gp <- w_gp$groupby(renamed_gp)
     ret <- tbl_gp$applyInPandas(main$r_apply, schema = .schema)$toPandas()  
   } else {
-    stop(".group_by = NULL is not supported yet") 
+    ret <- df$mapInPandas(main$r_apply, schema = .schema)$toPandas()
   }
   ret
 }
 
 tbl_mtcars %>% 
   sa_pandas_grouped(~ mean(.x$mpg), .group_by = "cyl", .schema = "cyl long, x double")
+
+tbl_mtcars %>% 
+  sa_pandas_grouped(function(e) data.frame(x = e$mpg))
 
 tbl_mtcars %>% 
   sa_pandas_grouped(function(e) summary(lm(wt ~ ., e))$r.squared, .group_by = "cyl", .schema = "cyl long, x double" )
