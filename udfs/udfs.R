@@ -133,13 +133,18 @@ from rpy2.robjects import pandas2ri
 def r_map(iterator):
   for pdf in iterator:
     pandas2ri.activate()
-    r_func =robjects.r(\"function(df) broom::augment(readRDS('/Users/edgar/r_projects/practice/udfs/model.rds'), df)[, 'mpg']\")
+    #r_func =robjects.r(\"function(df) broom::augment(readRDS('/Users/edgar/r_projects/practice/udfs/model.rds'), df)[, 'mpg']\")
+    #r_func = robjects.r(\"function(df) df[1, 1:3]\")
+    r_func = robjects.r(\"function(df) data.frame(x = mean(df$mpg))\")
     ret = r_func(pdf)
     yield pandas2ri.rpy2py_dataframe(ret)"
   )
 main <- reticulate::import_main()
-pd_mtcars$mapInPandas(main$r_map, "mpg long")$show()
+pd_mtcars$mapInPandas(main$r_map, "x double")$show()
+pd_second <- pd_mtcars$repartition(numPartitions = 2L)
+pd_second$mapInPandas(main$r_map, "x double")$show()
 
 
-test1 <- function(df) broom::augment(readRDS('/Users/edgar/r_projects/practice/udfs/model.rds'), df)[, 'mpg']
-test
+pd_mtcars$mapInPandas(main$r_map, "mpg double, cyl double, disp long")$show()
+
+mtcars[1, 1:3]
