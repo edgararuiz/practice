@@ -101,7 +101,7 @@ tbl_mtcars %>%
   sa_pandas_grouped(~ mean(.x$mpg), .group_by = "cyl", .schema = "cyl long, x double")
 
 tbl_mtcars %>% 
-  sa_pandas_grouped(function(e) summary(lm(wt ~ ., e))$r.squared, .group_by = "cyl", .schema = "am long, x double" )
+  sa_pandas_grouped(function(e) summary(lm(wt ~ ., e))$r.squared, .group_by = "cyl", .schema = "cyl long, x double" )
 
 pd_grouped$apply(main$r_apply)
 
@@ -119,4 +119,14 @@ sa_function_to_string(~ mean(.x$mpg))%>%
 
 spark_disconnect(sc)
 pysparklyr::spark_connect_service_stop()
+
+py_run_string("def filter_func(iterator):
+  import pandas as pd
+  for pdf in iterator:
+      yield pd.DataFrame(pdf['mpg'])"
+)
+
+main <- reticulate::import_main()
+
+pd_mtcars$mapInPandas(main$filter_func, "mpg long")$show()
 
