@@ -120,13 +120,26 @@ sa_function_to_string(~ mean(.x$mpg))%>%
 spark_disconnect(sc)
 pysparklyr::spark_connect_service_stop()
 
+model <- lm(mpg ~ ., mtcars)
+saveRDS(model, "/Users/edgar/r_projects/practice/udfs/model.rds")
 py_run_string("def filter_func(iterator):
   import pandas as pd
   for pdf in iterator:
       yield pd.DataFrame(pdf['mpg'])"
 )
-
+py_run_string("import pandas as pd
+import rpy2.robjects as robjects
+from rpy2.robjects import pandas2ri
+def r_map(iterator):
+  for pdf in iterator:
+    pandas2ri.activate()
+    r_func =robjects.r(\"function(df) broom::augment(readRDS('/Users/edgar/r_projects/practice/udfs/model.rds'), df)[, 'mpg']\")
+    ret = r_func(pdf)
+    yield pandas2ri.rpy2py_dataframe(ret)"
+  )
 main <- reticulate::import_main()
+pd_mtcars$mapInPandas(main$r_map, "mpg long")$show()
 
-pd_mtcars$mapInPandas(main$filter_func, "mpg long")$show()
 
+test1 <- function(df) broom::augment(readRDS('/Users/edgar/r_projects/practice/udfs/model.rds'), df)[, 'mpg']
+test
