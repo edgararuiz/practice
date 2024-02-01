@@ -44,6 +44,22 @@ pysparklyr::spark_connect_service_start()
 sc <- spark_connect("sc://localhost", method = "spark_connect", version = "3.5")
 # sc <- spark_connect(method = "databricks_connect", cluster_id = "1026-175310-7cpsh3g8")
 tbl_mtcars <- copy_to(sc, mtcars)
+
+tbl_mtcars %>% 
+  spark_apply(nrow, group_by = "cyl")
+
+tbl_mtcars %>% 
+  spark_apply(nrow, barrier = TRUE)
+
+####################
+spark_disconnect(sc)
+pysparklyr::spark_connect_service_stop()
+####################
+
+
+tbl_mtcars %>% 
+  spark_apply()
+
 pd_mtcars <- tbl_mtcars[[1]]$session
 
 pd_grouped <- pd_mtcars$groupby("am")
@@ -107,13 +123,20 @@ sa_in_pandas <- function(x, .f, ..., .schema = "x double", .group_by = NULL) {
 }
 
 tbl_mtcars %>% 
+  sa_in_pandas(nrow)
+
+tbl_mtcars %>% 
   sa_in_pandas(~ mean(.x$mpg), .group_by = "cyl", .schema = "cyl long, x double")
 
 tbl_mtcars %>% 
   sa_in_pandas(function(e) data.frame(x = mean(e$mpg)))
 
 tbl_mtcars %>% 
-  sa_in_pandas(function(e) summary(lm(wt ~ ., e))$r.squared, .group_by = "cyl", .schema = "cyl long, x double" )
+  spark_apply(function(e) summary(
+    lm(wt ~ ., e))$r.squared, 
+    group_by = "cyl", 
+    columns = "cyl long, x double" 
+    )
 
 pd_grouped$apply(main$r_apply)
 
@@ -129,8 +152,6 @@ pd_grouped %>%
 sa_function_to_string(~ mean(.x$mpg))%>% 
   cat()
 
-spark_disconnect(sc)
-pysparklyr::spark_connect_service_stop()
 
 model <- lm(mpg ~ ., mtcars)
 saveRDS(model, "/Users/edgar/r_projects/practice/udfs/model.rds")
@@ -145,7 +166,6 @@ from rpy2.robjects import pandas2ri
 def r_map(iterator):
   for pdf in iterator:
     pandas2ri.activate()
-    #r_func =robjects.r(\"function(df) broom::augment(readRDS('/Users/edgar/r_projects/practice/udfs/model.rds'), df)[, 'mpg']\")
     #r_func = robjects.r(\"function(df) df[1, 1:3]\")
     r_func = robjects.r(\"function(df) data.frame(x = mean(df$mpg))\")
     ret = r_func(pdf)
@@ -160,3 +180,56 @@ pd_second$mapInPandas(main$r_map, "x double")$show()
 pd_mtcars$mapInPandas(main$r_map, "mpg double, cyl double, disp long")$show()
 
 mtcars[1, 1:3]
+
+
+trees_tbl <- sdf_copy_to(sc, trees, repartition = 2)
+
+spark_apply(trees_tbl, function(e) head(e, 1))
+
+spark_apply(trees_tbl, function(e) scale(e), columns = "Girth double, Height double, Volume double")
+
+spark_apply(
+  trees_tbl,
+  function(e) nrow(e), names = "n"
+)
+
+
+iris_tbl <- sdf_copy_to(sc, iris)
+
+spark_apply(iris_tbl, nrow, group_by = "Species", "Species string, x long")
+
+remotes::install_github("sparklyr/sparklyr", ref = "udf")
+remotes::install_github("mlverse/pysparklyr", ref = "udf")
+library(sparklyr)
+library(dplyr)
+library(dbplyr)
+sc <- spark_connect(method = "databricks_connect", cluster_id = "1026-175310-7cpsh3g8")
+
+tbl_mtcars <- copy_to(sc, mtcars)
+
+tbl_mtcars %>% 
+  spark_apply(nrow, group_by = "am")
+
+tbl_mtcars %>% 
+  spark_apply(function(e) scale(e))
+
+tbl_mtcars %>%
+  spark_apply(
+    function(e) summary(lm(mpg ~ ., e))$r.squared,
+    columns = "am long, x double",
+    group_by = "am"
+  )
+
+spark_apply(
+  tbl_mtcars,
+  function(e) x <- broom::tidy(lm(wt ~ ., e)),
+  group_by = "am"
+)
+
+
+
+test1 <- sa_function_to_string(function(e) x <- broom::tidy(lm(wt ~ ., e)), .group_by = "am", .r_only = TRUE) %>% 
+  rlang::parse_expr() %>% 
+  eval()
+
+test1()
