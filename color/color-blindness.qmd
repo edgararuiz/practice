@@ -1,26 +1,92 @@
 ```{r}
 library(ggplot2)
 
-x <- "#99cccc"
+x <- "#99dd99"
 
 to_rgb <- col2rgb(x)
+to_rgb
 ```
 
 
 ```{r}
 to_red <- to_rgb
-to_red[[3]] <- to_red[[3]] * 0.9
-to_red[[2]] <- to_red[[2]] * 0.
+to_red[[1]] <- to_red[[1]] * 0.87
+to_red[[2]] <- to_red[[2]] * 0.5
 #to_red[[1]] <- to_red[[1]] * 1.2
+
+#to_red <- to_red * 2.3
 
 x_red <- rgb(to_red[[1]], to_red[[2]], to_red[[3]], maxColorValue = 255)
 
-x <- rgb(128, 154, 31, maxColorValue = 255)
-x_red <- rgb(17, 175, 12, maxColorValue = 255)
+
+to_red 
+to_rgb
 
 ggplot(data = data.frame(x = 1:2, y = 2)) +
   geom_col(aes(x = x, y = y), fill = c(x, x_red)) + 
   theme_minimal()
 
 ```
+
+```{r}
+blue <- 120
+red <- blue * 0.87
+green <- blue * 0.5
+
+new_col <- rgb(red, green, blue, maxColorValue = 255)
+new_col2 <- rgb(blue, blue, blue, maxColorValue = 255)
+
+ggplot(data = data.frame(x = 1:2, y = 2)) +
+  geom_col(aes(x = x, y = y), fill = c(new_col, new_col2)) + 
+  theme_minimal()
+```
+
+```{r}
+no_bins <- 10
+bins <- 1:no_bins * 255 / no_bins
+combos <- as.data.frame(expand.grid(bins, bins, bins))
+colnames(combos) <- c("red", "green", "blue")
+crows <- seq_len(nrow(combos))
+to_rgb <- rgb(combos$red[crows], combos$green[crows], combos$blue[crows], maxColorValue = 255)
+combos$hex <- to_rgb
+combos$y <- 2
+combos <- combos[combos$hex == sort(combos$hex), ]
+combos$col <- seq_len(nrow(combos))
+combos
+```
+
+
+```{r}
+ggplot(data = combos) +
+  geom_col(aes(col, y), fill = combos$hex)
+```
+```{r}
+library(tidyverse)
+
+no_bins <- 3
+bins <- 1:no_bins * 255 / no_bins
+combos <- tibble(expand.grid(bins, bins, bins))
+colnames(combos) <- c("red", "green", "blue")
+
+prep_combos <- combos %>% 
+  transpose() %>% 
+  map(~ {
+    x <- .x
+    x$hex <- rgb(x$red, x$green, x$blue, maxColorValue = 255)
+    x
+  }) %>% 
+  bind_rows() %>% 
+  arrange(hex) %>% 
+  mutate(x = 1:27, y = 2)
+
+prep_combos %>% 
+  ggplot() +
+  geom_col(aes(x, y, fill = hex)) +
+  scale_fill_manual(values = prep_combos$hex) +
+  theme(legend.position = "none")
+```
+
+
+
+
 
