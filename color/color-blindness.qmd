@@ -69,6 +69,7 @@ combos <- tibble(expand.grid(bins, bins, bins))
 colnames(combos) <- c("red", "green", "blue")
 
 prep_combos <- combos %>% 
+  mutate(total = red+blue+green) %>% 
   transpose() %>% 
   map(~ {
     x <- .x
@@ -76,14 +77,17 @@ prep_combos <- combos %>%
     x
   }) %>% 
   bind_rows() %>% 
-  arrange(hex) %>% 
+  arrange(blue, green, red) %>% 
   mutate(x = 1:27, y = 2)
+
+prep_combos
 
 prep_combos %>% 
   ggplot() +
-  geom_col(aes(x, y, fill = hex)) +
+  geom_col(aes(x, y, fill = hex), color = "gray") +
   scale_fill_manual(values = prep_combos$hex) +
-  theme(legend.position = "none")
+  theme_minimal() +
+  theme(legend.position = "none") 
 ```
 
 
