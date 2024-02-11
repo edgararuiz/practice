@@ -1,0 +1,16 @@
+```{r}
+library(ggplot2)
+
+x <- "#B2AC88"
+
+to_rgb <- col2rgb(x)
+
+to_red <- to_rgb
+to_red[[1]] <- 0
+
+x_red <- rgb(to_red[[1]], to_red[[2]], to_red[[3]], maxColorValue = 255)
+
+ggplot(data = data.frame(x = 1:2, y = 2)) +
+  geom_col(aes(x = x, y = y), fill = c(x, x_red))
+```
+
