@@ -23,7 +23,7 @@ to_red
 to_rgb
 
 ggplot(data = data.frame(x = 1:2, y = 2)) +
-  geom_col(aes(x = x, y = y), fill = c(x, x_red)) + 
+  geom_col(aes(x = x, y = y), fill = c("#E6E6E6", "#E673E6")) + 
   theme_minimal()
 
 ```
@@ -63,25 +63,64 @@ ggplot(data = combos) +
 ```{r}
 library(tidyverse)
 
-no_bins <- 3
-bins <- 1:no_bins * 255 / no_bins
+no_bins <- 2
+bins <- 1:no_bins * 230 / no_bins
+bins <- c(0, 125, 250)
 combos <- tibble(expand.grid(bins, bins, bins))
 colnames(combos) <- c("red", "green", "blue")
+crows <- seq_len(nrow(combos))
+to_rgb <- rgb(combos$red[crows], combos$green[crows], combos$blue[crows], maxColorValue = 255)
+combos$hex <- to_rgb
 
-prep_combos <- combos %>% 
-  mutate(total = red+blue+green) %>% 
-  transpose() %>% 
-  map(~ {
-    x <- .x
-    x$hex <- rgb(x$red, x$green, x$blue, maxColorValue = 255)
-    x
-  }) %>% 
-  bind_rows() %>% 
-  arrange(blue, green, red) %>% 
-  mutate(x = 1:27, y = 2)
+prep <- combos %>% 
+  arrange(hex) %>% 
+  mutate(
+    x = row_number(),
+    y = 2
+  )
 
-prep_combos
+prep %>% 
+  ggplot() +
+  geom_col(aes(x, y, fill = hex)) +
+  scale_fill_manual(values = prep$hex) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
 
+```{r}
+prep
+```
+
+
+```{r}
+library(tidyverse)
+
+no_bins <- 2
+bins <- 1:no_bins * 230 / no_bins
+bins <- c(10, 240)
+combos <- tibble(expand.grid(bins, bins, bins))
+colnames(combos) <- c("red", "green", "blue")
+crows <- seq_len(nrow(combos))
+to_rgb <- rgb(combos$red[crows] * 0.8, combos$green[crows] * 0.8, combos$blue[crows], maxColorValue = 255)
+combos$hex <- to_rgb
+
+prep <- combos %>% 
+  arrange(hex) %>% 
+  mutate(
+    x = row_number(),
+    y = 2
+  )
+
+prep %>% 
+  ggplot() +
+  geom_col(aes(x, y, fill = hex)) +
+  scale_fill_manual(values = prep$hex) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+
+```{r}
 prep_combos %>% 
   ggplot() +
   geom_col(aes(x, y, fill = hex), color = "gray") +
@@ -92,5 +131,65 @@ prep_combos %>%
 
 
 
+```{r}
+prep_combos %>% 
+  mutate()
+```
+```{r}
+library(tidyverse)
+
+no_bins <- 2
+bins <- 1:no_bins * 230 / no_bins
+bins <- c(40, 220)
+combos <- tibble(expand.grid(bins, bins, bins))
+colnames(combos) <- c("red", "green", "blue")
+
+red_limit <- 255 * 0.87
+combos$red <- ifelse(combos$red <= red_limit, combos$red, red_limit)
+
+green_limit <- 255 * 0.5
+combos$green <- ifelse(combos$green <= green_limit, combos$green, green_limit)
 
 
+crows <- seq_len(nrow(combos))
+to_rgb <- rgb(combos$red[crows], combos$green[crows], combos$blue[crows], maxColorValue = 255)
+combos$hex <- to_rgb
+
+prep <- combos %>% 
+  arrange(hex) %>% 
+  mutate(
+    x = row_number(),
+    y = 2
+  )
+
+prep %>% 
+  ggplot() +
+  geom_col(aes(x, y, fill = hex)) +
+  scale_fill_manual(values = prep$hex) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+```{r}
+library(tidyverse)
+no_bins <- 2
+bins <- 1:no_bins * 230 / no_bins
+bins <- c(40, 220)
+combos <- tibble(expand.grid(bins, bins, bins))
+colnames(combos) <- c("red", "green", "blue")
+crows <- seq_len(nrow(combos))
+to_rgb <- rgb(combos$red[crows], combos$green[crows], combos$blue[crows], maxColorValue = 255)
+combos$hex <- to_rgb
+prep <- combos %>% 
+  arrange(hex) %>% 
+  mutate(
+    x = row_number(),
+    y = 2
+  )
+prep %>% 
+  ggplot() +
+  geom_col(aes(x, y, fill = hex)) +
+  scale_fill_manual(values = prep$hex) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
