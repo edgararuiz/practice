@@ -1,0 +1,17 @@
+```{r setup, include = FALSE}
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(rlang))
+```
+
+
+```{r, echo = FALSE, results='asis'}
+walk(
+  names(mtcars),
+  ~{
+    curr_var <- .x
+    x <- knitr::knit_child("plot.Rmd", envir = environment(), quiet = TRUE)
+    cat(x, sep = '\n')
+  }
+)
+```
+

@@ -1,0 +1,8 @@
+## `r paste0(curr_var, " vs mpg")`
+
+```{r,  echo = FALSE}
+mtcars %>% 
+  ggplot() +
+  geom_point(aes(x = mpg, y = !! parse_expr(curr_var)))
+```
+
