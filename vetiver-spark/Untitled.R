@@ -44,4 +44,21 @@ lendingclub_dat |>
 
 
 lendingclub_dat |> 
-  spark_apply(nrow)
+  head(100) |> 
+  spark_apply(function(e) {x<-nrow(e);x+10})
+
+x1 <-function(e) {x<-nrow(e); x + 10;}
+x1(mtcars)
+
+lendingclub_dat |> 
+  spark_apply(function(x) {
+    board <- pins::board_connect(auth = "manual")
+    model <- vetiver::vetiver_pin_read(board, "garrett@posit.co/lending_club_model")
+    term <- lapply(strsplit(lendingclub_local$term, " "), function(x) x[[2]])
+    x$term <- as.numeric(term)
+    x$bc_util <- as.numeric(lendingclub_local$bc_util)
+    x$all_util <- as.numeric(lendingclub_local$all_util)
+    x$bc_open_to_buy <- as.numeric(lendingclub_local$bc_open_to_buy)
+    library(workflows)
+    head(predict(model, x), 1)
+  })
