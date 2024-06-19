@@ -5,9 +5,9 @@ pak::pak("rstudio/reticulate")
 
 # Actual script
 library(sparklyr)
-library(dplyr)
 sc <- spark_connect(method = "databricks_connect")
 lendingclub_dat <- tbl(sc, dbplyr::in_catalog("hive_metastore", "default", "lendingclub"))
+
 predict_vetiver <- function(x) {
   board <- pins::board_connect(
     auth = "manual", 
@@ -29,7 +29,7 @@ predict_vetiver <- function(x) {
 }
 
 lendingclub_dat |> 
-  head(30000) |> 
+  head(100) |> 
   spark_apply(predict_vetiver, columns = "mean_preds double") 
 
 
