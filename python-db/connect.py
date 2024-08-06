@@ -10,14 +10,12 @@ from sqlalchemy.orm import DeclarativeBase, Session
 
 load_dotenv()
 
-access_token    = os.getenv("DATABRICKS_TOKEN")
-host            = os.getenv("DATABRICKS_HOST")
-http_path       =  "/sql/1.0/warehouses/300bd24ba12adf8e"
-catalog         = "workshops"
-schema          = "samples"
-
 engine = create_engine(
-    f"databricks://token:{access_token}@{host}?http_path={http_path}&catalog={catalog}&schema={schema}",
+    f"databricks://token:{os.getenv("DATABRICKS_TOKEN")}" + \
+    f"@{os.getenv("DATABRICKS_HOST")}" + \
+    "?http_path=/sql/1.0/warehouses/300bd24ba12adf8e" + \
+    f"&catalog=workshops&" + \
+    f"schema=samples",
     echo=True,
 )
 
