@@ -1,13 +1,14 @@
+# pip install sqlalchemy
+# pip install databricks-sql-connector
+# pip install python-dotenv
+
 import os
-from dotenv import load_dotenv
-from sqlalchemy import create_engine
-from sqlalchemy import text
-from sqlalchemy.orm import DeclarativeBase, Session
 import pandas as pd
+from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import DeclarativeBase, Session
 
 load_dotenv()
-
-# pip install databricks-sql-connector
 
 access_token    = os.getenv("DATABRICKS_TOKEN")
 host            = os.getenv("DATABRICKS_HOST")
