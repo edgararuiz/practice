@@ -20,7 +20,6 @@ engine = create_engine(
     f"databricks://token:{access_token}@{host}?http_path={http_path}&catalog={catalog}&schema={schema}",
     echo=True,
 )
-session = Session(engine)
-res = session.execute(text('SELECT * FROM lendingclub limit 10'))
+
 df = pd.read_sql_query('SELECT * FROM lendingclub limit 10', engine)
 print(df)
