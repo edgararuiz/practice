@@ -1,13 +1,19 @@
 import requests
+import json
 
 url = "http://localhost:11434/api/generate"
 
-req = {'model': 'llama2', 'prompt' :'hello', 'stream': 'false'}
+headers = {
+    "Content-Type": "application/json"
+}
 
-req
+data = {'model': 'llama2', 'prompt' :'hello', 'stream': False}
 
-response = requests.post(url, json = req)
+response = requests.post(url, data = json.dumps(data), headers = headers)
 
 response
 
-response.json()
+json_resp = response.json()
+
+
+json_resp.get("response")
