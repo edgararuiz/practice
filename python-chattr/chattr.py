@@ -7,13 +7,14 @@ headers = {
     "Content-Type": "application/json"
 }
 
-data = {'model': 'llama2', 'prompt' :'hello', 'stream': False}
+data = {
+    'model': 'llama2',
+    'prompt' :'hello', 
+    'stream': True
+    }
 
 response = requests.post(url, data = json.dumps(data), headers = headers)
 
-response
-
-json_resp = response.json()
-
-
-json_resp.get("response")
+for line in response.iter_lines():
+    body = json.loads(line)
+    print(body.get("response"))
