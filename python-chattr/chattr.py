@@ -16,11 +16,12 @@ data = {
     'stream': True
     }
 
-response = requests.post(url, data = json.dumps(data), headers = headers)
+session = requests.Session()
+
+response = session.post(url, data = json.dumps(data), headers = headers, stream = True)
 
 for line in response.iter_lines():
     body = json.loads(line)
     resp = body.get("response")
     sys.stdout.write(resp)
-    
 
