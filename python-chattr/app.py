@@ -31,17 +31,10 @@ def server(input: Inputs, output: Outputs, session: Session):
         nonlocal response
         nonlocal proc
         out = ''
-        reactive.invalidate_later(0.5)
+        reactive.invalidate_later(0.1)
         if hasattr(proc, "stdout"):
             out = proc.stdout.read(3)
             if out:
-                if input.prompt() != '':
-                    pr = "Me: " + input.prompt()
-                    ui.update_text("prompt", value= "")
-                    ui.insert_ui(                        
-                        ui.p(pr), selector= "#main", where = "afterEnd"
-                        )                        
-                    pr = ''                
                 out = str(out.decode())
                 print(out)
                 response = response + out
@@ -51,7 +44,16 @@ def server(input: Inputs, output: Outputs, session: Session):
                     ui.insert_ui(                        
                         ui.p(response), selector= "#main", where = "afterEnd"
                     )    
-                    response = ''                
+                    response = '' 
+
+                    if input.prompt() != '':
+                        pr = "Me: " + input.prompt()
+                        ui.update_text("prompt", value= "")
+                        ui.insert_ui(                        
+                            ui.p(pr), selector= "#main", where = "afterEnd"
+                            )                        
+                        pr = ''                
+               
         return response
 
 
