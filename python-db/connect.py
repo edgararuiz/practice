@@ -1,7 +1,3 @@
-# pip install sqlalchemy
-# pip install databricks-sql-connector
-# pip install python-dotenv
-
 import os
 import pandas as pd
 from dotenv import load_dotenv
@@ -21,3 +17,4 @@ engine = create_engine(
 
 df = pd.read_sql_query('SELECT * FROM lendingclub limit 10', engine)
 print(df)
+
