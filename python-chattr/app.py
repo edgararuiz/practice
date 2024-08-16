@@ -11,6 +11,7 @@ app_ui = ui.page_fluid(
 def server(input: Inputs, output: Outputs, session: Session):
     response = ''
     proc = ''
+    times = 0
     @reactive.effect
     @reactive.event(input.submit)
     def _():
@@ -29,13 +30,15 @@ def server(input: Inputs, output: Outputs, session: Session):
     def value():
         nonlocal response
         nonlocal proc
+        nonlocal times
         out = ''
         reactive.invalidate_later(0.1)
         if hasattr(proc, "stdout"):
-            out = proc.stdout.read()
+            out = proc.stdout.read(1)
             if out:
                 ui.update_text("prompt", value= "")
-                print(out)
+                times = times + 1
+                print(times)
                 response = response + str(out)            
         return response
 
