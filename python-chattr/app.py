@@ -17,11 +17,14 @@ def server(input: Inputs, output: Outputs, session: Session):
     @reactive.event(input.submit)
     def rec():
         nonlocal proc
-        proc = subprocess.Popen([
+        args = [
             'python',
             'python-chattr/chattr.py', 
-            "--prompt='hello'"
-            ],
+            f"--prompt='" + str(input.prompt()) + "'"
+            ]
+        print(args)
+        proc = subprocess.Popen(
+            args,
             stdout=subprocess.PIPE
             )
 
@@ -30,14 +33,15 @@ def server(input: Inputs, output: Outputs, session: Session):
     def value():
         nonlocal response
         nonlocal proc
+        ui.update_text("prompt", value= "")
         out = ''
         rec()
-        reactive.invalidate_later(1)
+        reactive.invalidate_later(0.1)
         if hasattr(proc, "stdout"):
             out = proc.stdout.read()
+        
         if out:
-            response = response + str(out)
-        print(out)
+            response = response + str(out)            
         return response
 
 
