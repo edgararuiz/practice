@@ -1,8 +1,5 @@
 import random
 import subprocess
-
-
-
 from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 
 app_ui = ui.page_fluid(
@@ -14,36 +11,35 @@ app_ui = ui.page_fluid(
 def server(input: Inputs, output: Outputs, session: Session):
     response = ''
     proc = ''
+    @reactive.effect
     @reactive.event(input.submit)
-    def rec():
+    def _():
         nonlocal proc
         args = [
             'python',
             'python-chattr/chattr.py', 
             f"--prompt='" + str(input.prompt()) + "'"
             ]
-        print(args)
         proc = subprocess.Popen(
             args,
             stdout=subprocess.PIPE
             )
 
     @render.text
-    @reactive.event(input.submit)
     def value():
         nonlocal response
         nonlocal proc
-        ui.update_text("prompt", value= "")
         out = ''
-        rec()
         reactive.invalidate_later(0.1)
         if hasattr(proc, "stdout"):
             out = proc.stdout.read()
-        
-        if out:
-            response = response + str(out)            
+            if out:
+                ui.update_text("prompt", value= "")
+                print(out)
+                response = response + str(out)            
         return response
 
 
 app = App(app_ui, server)
+
 
