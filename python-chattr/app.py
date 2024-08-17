@@ -35,7 +35,8 @@ def server(input: Inputs, output: Outputs, session: Session):
                     ui.p(), 
                     ui.card(
                         ui.markdown(input.prompt()), 
-                        full_screen=True
+                        full_screen=True, 
+                        style = "background-color: #196FB6; color: white;"
                         ),                                
                     col_widths= (1, 11)
                 ), 
