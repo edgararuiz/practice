@@ -3,7 +3,7 @@ import json
 import sys
 
 def ch_submit_ollama(prompt, stream = True):
-    url = "http://localhost:11434/api/generate"
+    url = "http://localhost:11434/api/chat"
 
     headers = {
         "Content-Type": "application/json"
@@ -11,16 +11,20 @@ def ch_submit_ollama(prompt, stream = True):
 
     data = {
         'model': 'llama2',
-        'prompt' : prompt, 
+        'messages' :  [
+            {
+            "role": "user",
+            "content": prompt
+            }
+        ], 
         'stream': stream
         }
-
     response = requests.post(url, data = json.dumps(data), headers = headers, stream = stream)
-
     for line in response.iter_lines():
         body = json.loads(line)
-        resp = body.get("response")
-        sys.stdout.write(resp)
+        resp = body.get("message")
+        content = resp.get("content")
+        sys.stdout.write(content)
 
 def chattr(prompt, stream = True):
     return(ch_submit_ollama(prompt = prompt, stream = stream))
