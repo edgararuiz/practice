@@ -12,3 +12,23 @@ while True:
 print(times)
 
 
+item1 = {
+      "role": "user",
+      "content": "hello"
+  }
+
+d1 = dict(role = "user", content = "hello")
+d2 = dict(role = "system", content = "helpful thing")
+dall = []
+dall
+dall.append(d1)
+dall.append(d2)
+dall
+
+str_dall = str(dall)
+import json
+x = json.dumps(str_dall)
+x.__class__
+json.load(str_dall)
+json.loads(str_all)
+eval(str_all)
