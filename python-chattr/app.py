@@ -1,4 +1,3 @@
-import random
 import subprocess
 from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 
@@ -35,7 +34,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         nonlocal proc
         args = [
             'python',
-            'python-chattr/chattr.py', 
+            'python-chattr/chattr-sub.py', 
             f"--prompt='" + str(input.prompt()) + "'"
             ]
         proc = subprocess.Popen(
