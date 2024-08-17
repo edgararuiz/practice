@@ -28,6 +28,20 @@ def server(input: Inputs, output: Outputs, session: Session):
             args,
             stdout=subprocess.PIPE
             )
+        if input.prompt() != '':
+            ui.update_text("prompt", value= "")
+            ui.insert_ui(  
+                ui.layout_columns(
+                    ui.p(), 
+                    ui.card(
+                        ui.markdown(input.prompt()), 
+                        full_screen=True
+                        ),                                
+                    col_widths= (1, 11)
+                ), 
+                selector= "#main", 
+                where = "afterEnd"
+                )                        
 
     @render.text
     def value():
@@ -41,31 +55,21 @@ def server(input: Inputs, output: Outputs, session: Session):
                 out = str(out.decode())
                 response = response + out
             else:
-                if response != '':
+                if response != '':    
+
                     ui.insert_ui(                        
                         ui.layout_columns(
-                            ui.card(ui.markdown(response), full_screen=True),
+                            ui.card(
+                                ui.markdown(response), 
+                                full_screen=True
+                                ),
                             ui.p(),
                             col_widths= (11, 1)
                             ), 
                         selector= "#main", 
                         where = "afterEnd"
                     )    
-                    response = '' 
-
-                    if input.prompt() != '':
-                        pr = input.prompt()
-                        ui.update_text("prompt", value= "")
-                        ui.insert_ui(  
-                            ui.layout_columns(
-                                ui.p(), 
-                                ui.card(ui.markdown(pr), full_screen=True),                                
-                                col_widths= (1, 11)
-                            ), 
-                            selector= "#main", 
-                            where = "afterEnd"
-                            )                        
-                        pr = ''                
+                    response = ''           
                
         return ui.markdown(response)
 
