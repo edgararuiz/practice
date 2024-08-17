@@ -5,13 +5,16 @@ from shiny import App, Inputs, Outputs, Session, reactive, render, ui
 ui_general = "padding-top: 3px;" +\
     "padding-bottom: 3px;" +\
     "padding-left: 5px;" +\
-    "padding-right: 5px;" 
+    "padding-right: 5px;"
 
 app_ui = ui.page_fluid(
     ui.layout_columns(
       ui.input_text_area("prompt", "", width="100%", resize=False),
-      ui.input_task_button("submit", "Submit", style = "font-size:55%;" + ui_general), 
-      col_widths= (10, 2)
+      ui.div(
+        ui.input_task_button("submit", "Submit", style = "font-size:55%;" + ui_general), 
+        ui.input_task_button("options", "Options", style = "font-size:55%;" + ui_general)
+      ),
+      col_widths= (11, 1)
     ),
     ui.output_ui("value"),
     ui.output_ui(id = "main")
@@ -41,7 +44,7 @@ def server(input: Inputs, output: Outputs, session: Session):
                     ui.card(
                         ui.markdown(input.prompt()), 
                         full_screen=True, 
-                        style = "background-color: #196FB6; color: white;"
+                        style = "background-color: #196FB6; color: white;" + ui_general
                         ),                                
                     col_widths= (1, 11)
                 ), 

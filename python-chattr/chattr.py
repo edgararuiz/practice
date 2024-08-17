@@ -13,8 +13,12 @@ def ch_submit_ollama(prompt, stream = True):
         'model': 'llama2',
         'messages' :  [
             {
-            "role": "user",
-            "content": prompt
+                "role": "user",
+                "content": prompt
+            },
+            {
+                "role": "system",
+                "content": "You are a helpful coding assistant that uses Python for data analysis"
             }
         ], 
         'stream': stream
