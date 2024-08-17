@@ -36,25 +36,28 @@ def server(input: Inputs, output: Outputs, session: Session):
             out = proc.stdout.read(3)
             if out:
                 out = str(out.decode())
-                print(out)
                 response = response + out
             else:
                 if response != '':
                     response = "LLLM: " + response
                     ui.insert_ui(                        
-                        ui.p(response), selector= "#main", where = "afterEnd"
+                        ui.markdown(response), 
+                        selector= "#main", 
+                        where = "afterEnd"
                     )    
                     response = '' 
 
                     if input.prompt() != '':
                         pr = "Me: " + input.prompt()
                         ui.update_text("prompt", value= "")
-                        ui.insert_ui(                        
-                            ui.p(pr), selector= "#main", where = "afterEnd"
+                        ui.insert_ui(  
+                            ui.p(pr),
+                            selector= "#main", 
+                            where = "afterEnd"
                             )                        
                         pr = ''                
                
-        return response
+        return ui.markdown(response)
 
 
 app = App(app_ui, server)
