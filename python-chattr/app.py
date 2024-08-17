@@ -43,13 +43,13 @@ def server(input: Inputs, output: Outputs, session: Session):
             stdout=subprocess.PIPE
             )
         if input.prompt() != '':
+            history.append(dict(role = "user", content = input.prompt()))
             ui.update_text("prompt", value= "")
             ui.insert_ui(  
                 ui.layout_columns(
                     ui.p(), 
                     ui.card(
                         ui.markdown(input.prompt()), 
-                        full_screen=True, 
                         style = ui_general("background-color: #196FB6; color: white;")
                         ),                                
                     col_widths= (1, 11)
@@ -71,21 +71,22 @@ def server(input: Inputs, output: Outputs, session: Session):
                 response = response + out
             else:
                 if response != '':    
-
                     ui.insert_ui(                        
                         ui.layout_columns(
-                            ui.card(
-                                ui.markdown(response), 
-                                full_screen=True
-                                ),
+                            ui.card(ui.markdown(response)),
                             ui.p(),
                             col_widths= (11, 1)
                             ), 
                         selector= "#main", 
                         where = "afterEnd"
                     )    
+                    history.append(dict(
+                        role = "assistant",
+                        content = response
+                        ))
+                    print(history)                    
                     response = ''           
-               
+
         return ui.markdown(response)
 
 app = App(app_ui, server)

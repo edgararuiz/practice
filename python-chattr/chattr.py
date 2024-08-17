@@ -18,7 +18,7 @@ def ch_submit_ollama(prompt, stream = True):
             },
             {
                 "role": "system",
-                "content": "You are a helpful coding assistant that uses Python for data analysis"
+                "content": "You are a helpful coding assistant that uses Python for data analysis. Keep comments brief."
             }
         ], 
         'stream': stream
