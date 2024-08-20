@@ -12,7 +12,7 @@ def ch_submit_ollama(prompt, stream = True, history = [], preview = False):
     messages = []
     messages.append(dict(
         role =  "system", 
-        content = "You are a helpful coding assistant that uses Python for data analysis. Keep comments to a."
+        content = "You are a helpful coding assistant that uses Python for data analysis. Avoid comments, focus on code"
         ))
     messages.append(dict(
         role =  "user", 
@@ -24,6 +24,7 @@ def ch_submit_ollama(prompt, stream = True, history = [], preview = False):
         'messages' :  messages, 
         'stream': stream
         }
+
 
     if preview:    
         print(data)
@@ -45,3 +46,13 @@ def chattr(prompt, stream = True, history = [], preview = False):
             preview = preview
             )
         )
+
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("--prompt", default = '')
+parser.add_argument("--stream", type = bool, default = True)
+
+args = parser.parse_args()
+
+if args.prompt != '':
+    chattr(args.prompt, args.stream)

@@ -34,7 +34,7 @@ def server(input: Inputs, output: Outputs, session: Session):
         nonlocal proc
         args = [
             'python',
-            'python-chattr/chattr-sub.py', 
+            'python-chattr/chattr.py', 
             f"--prompt='" + str(input.prompt()) + "'"
             ]
         proc = subprocess.Popen(
