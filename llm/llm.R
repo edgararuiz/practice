@@ -56,7 +56,25 @@ predictions <- strsplit(pred_str, ",")[[1]]
 
 predictions
 
+.llm_session <- new.env()
+.llm_session$
+
+llm_session <- function() {
+    
+}
+
 llm_sentiment <- function(x) {
+  
+  system_msg <- paste(
+    "You are a helpful sentiment analysis engine.",
+    "You will only return one of three responses: positive, negative, neutral.",
+    "The prompt will include a list in JSON format that needs to be analyzed.",
+    "Return a response for each of the items in that list.",
+    "The response hast to be a list of the results, no explanations.",
+    "No capitalization.",
+    "The response needs to be comma separated, no spaces."
+  )
+  
   pred_str <- ollamar::chat(
     model = "llama3.1",
     messages = list(
@@ -78,3 +96,69 @@ reviews |>
 res <- reviews$review
 
 llm_sentiment(res)
+
+library(glue)
+
+
+
+llm_classify <- function(x, options = c()) {
+  
+  options <- paste0("'", options, "'", collapse = ",")
+  
+  system_msg <- paste(
+    "You are a helpful classification engine.",
+    "You will only return ONLY one these responses per entry in the list: {options}.",
+    "The prompt will include a list in JSON format that needs to be analyzed.",
+    "Return only ONE response for each of the items in that list.",
+    "The response hast to be a list of the results, no explanations.",
+    "No capitalization.",
+    "The response needs to be comma separated, no spaces."
+  ) |> 
+    glue()
+  
+  messages <- list(
+    list(role = "system", content = system_msg),
+    list(role = "user", content = jsonlite::toJSON(x))
+  )
+  pred_str <- ollamar::chat(
+    model = "llama3.1",
+    messages = messages,
+    output = "text"
+  )
+  predictions <- strsplit(pred_str, ",")[[1]]
+  trimws(predictions)
+}
+
+reviews |> 
+  mutate(classification = llm_classify(review, c("we need to follow up with customer", "no follow up needed")))
+
+reviews |> 
+  mutate(classification = llm_classify(review, c("really happy", "happy", "ok", "angry")))
+
+
+data_bookReviews |>
+  head() |> 
+  mutate(classification = llm_classify(review, c("positive", "negative"))) |> 
+  as_tibble()
+
+llm_classify(reviews$review, c("we need to follow up with customer", "no follow up needed"))
+
+data_bookReviews |>
+  head(1) |> 
+  mutate(classification = llm_sentiment(review)) |> 
+  as_tibble()
+
+llm_sentiment(data_bookReviews$review[1])
+
+jsonlite::toJSON(data_bookReviews$review[1:6])
+
+reviews |> 
+  mutate(sentiment = llm_sentiment(review))
+
+library(classmap)
+data(data_bookReviews)
+data_bookReviews |> 
+  head()
+
+
+
