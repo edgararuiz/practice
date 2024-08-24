@@ -161,4 +161,47 @@ data_bookReviews |>
   head()
 
 
+library(purrr)
+
+llm_sentiment <- function(x, options = c("positive", "negative", "neutral")) {
+  
+  options <- paste0("'", options, "'", collapse = ",")
+  
+  system_msg <- paste(
+    "You are a helpful sentiment analysis engine.",
+    "You will only return one of these responses: {options}.",
+    "The response needs to be based on the sentiment of the prompt.",
+    "Return only one response from the choices given ({options}).",
+    "No capitalization."
+  ) |> 
+    glue()
+  
+  x |> 
+    map_chr(
+      ~ {
+        ollamar::chat(
+          model = "llama3.1",
+          messages = list(
+            list(role = "system", content = system_msg),
+            list(role = "user", content = jsonlite::toJSON(.x))
+          ),
+          output = "text"
+        )      
+      },
+      .progress = TRUE
+    )
+}
+
+book_reviewed <- data_bookReviews |>
+  head(100) |> 
+  mutate(llm = llm_sentiment(review, options = c("positive", "negative"))) |> 
+  select(sentiment, llm, review) |> 
+  as_tibble()
+
+book_reviewed |> 
+  count(sentiment, llm) 
+
+
+library(tidyverse)
+
 
