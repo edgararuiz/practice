@@ -55,3 +55,26 @@ pred_str <- chat(
 predictions <- strsplit(pred_str, ",")[[1]]
 
 predictions
+
+llm_sentiment <- function(x) {
+  pred_str <- ollamar::chat(
+    model = "llama3.1",
+    messages = list(
+      list(role = "system", content = system_msg),
+      list(role = "user", content = jsonlite::toJSON(x))
+    ),
+    output = "text"
+  )
+  predictions <- strsplit(pred_str, ",")[[1]]
+  predictions
+}
+
+library(dplyr)
+
+reviews |> 
+  select(review) |> 
+  llm_sentiment()
+
+res <- reviews$review
+
+llm_sentiment(res)
