@@ -179,12 +179,10 @@ llm_sentiment <- function(x, options = c("positive", "negative", "neutral")) {
   x |> 
     map_chr(
       ~ {
-        ollamar::chat(
+        ollamar::generate(
           model = "llama3.1",
-          messages = list(
-            list(role = "system", content = system_msg),
-            list(role = "user", content = jsonlite::toJSON(.x))
-          ),
+          system = system_msg,
+          prompt = .x, 
           output = "text"
         )      
       },
@@ -192,8 +190,8 @@ llm_sentiment <- function(x, options = c("positive", "negative", "neutral")) {
     )
 }
 
-book_reviewed <- data_bookReviews |>
-  head(100) |> 
+book_reviewed <- data_bookReviews|>
+  head(10) |> 
   mutate(llm = llm_sentiment(review, options = c("positive", "negative"))) |> 
   select(sentiment, llm, review) |> 
   as_tibble()
@@ -204,4 +202,36 @@ book_reviewed |>
 
 library(tidyverse)
 
+book_reviewed |> 
+  mutate(x = str_detect(review, "1750")) |> 
+  pull(x) |> 
+  which()
 
+
+llm_translate <- function(x, options = "spanish") {
+  
+  options <- paste0("'", options, "'", collapse = ",")
+  
+  system_msg <- paste(
+    "You are a helpful language translationengine.",
+    "You will translate the provided prompt to the {options} language.",
+    "No comments, or explanation, just return the translation"
+  ) |> 
+    glue()
+  
+  x |> 
+    map_chr(
+      ~ {
+        ollamar::generate(
+          model = "llama3.1",
+          prompt = .x,
+          system = system_msg,
+          output = "text"
+        )      
+      },
+      .progress = TRUE
+    )
+}
+
+data_bookReviews[4,] |> 
+  mutate(translation = llm_translate(review))
