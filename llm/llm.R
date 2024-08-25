@@ -179,12 +179,14 @@ llm_sentiment <- function(x, options = c("positive", "negative", "neutral")) {
   x |> 
     map_chr(
       ~ {
+        tic()
         ollamar::generate(
           model = "llama3.1",
           system = system_msg,
           prompt = .x, 
           output = "text"
         )      
+        capture.output(toc())
       },
       .progress = TRUE
     )
@@ -239,7 +241,7 @@ data_bookReviews[4,] |>
 library(tictoc)
 tic()
 data_bookReviews[1:10,] |> 
-  mutate(sentiment = llm_sentiment(review))
+  mutate(sentiment = llm_sentiment_parallel(review))
 toc()
 
 
@@ -259,12 +261,14 @@ llm_sentiment_parallel <- function(x, options = c("positive", "negative", "neutr
   x |> 
     furrr::future_map_chr(
       ~ {
+        tic()
         ollamar::generate(
           model = "llama3.1",
           system = system_msg,
           prompt = .x, 
           output = "text"
         )      
+        return(capture.output(toc()))
       },
       .progress = TRUE
     )
@@ -278,5 +282,5 @@ plan(multisession)
 data("data_bookReviews")
 tic()
 data_bookReviews[1:10,] |> 
-  mutate(sentiment = llm_sentiment_parallel(review))
+  mutate(sentiment = llm_sentiment(review))
 toc()
