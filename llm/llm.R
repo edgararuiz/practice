@@ -235,3 +235,48 @@ llm_translate <- function(x, options = "spanish") {
 
 data_bookReviews[4,] |> 
   mutate(translation = llm_translate(review))
+
+library(tictoc)
+tic()
+data_bookReviews[1:10,] |> 
+  mutate(sentiment = llm_sentiment(review))
+toc()
+
+
+llm_sentiment_parallel <- function(x, options = c("positive", "negative", "neutral")) {
+  
+  options <- paste0("'", options, "'", collapse = ",")
+  
+  system_msg <- paste(
+    "You are a helpful sentiment analysis engine.",
+    "You will only return one of these responses: {options}.",
+    "The response needs to be based on the sentiment of the prompt.",
+    "Return only one response from the choices given ({options}).",
+    "No capitalization."
+  ) |> 
+    glue::glue()
+  
+  x |> 
+    furrr::future_map_chr(
+      ~ {
+        ollamar::generate(
+          model = "llama3.1",
+          system = system_msg,
+          prompt = .x, 
+          output = "text"
+        )      
+      },
+      .progress = TRUE
+    )
+}
+
+library(dplyr)
+library(tictoc)
+library(classmap)
+library(furrr)
+plan(multisession)
+data("data_bookReviews")
+tic()
+data_bookReviews[1:10,] |> 
+  mutate(sentiment = llm_sentiment_parallel(review))
+toc()
