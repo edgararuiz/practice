@@ -192,6 +192,10 @@ llm_sentiment <- function(x, options = c("positive", "negative", "neutral")) {
     )
 }
 
+tic()
+llm_sentiment(data_bookReviews$review[1:10])
+toc()
+
 book_reviewed <- data_bookReviews|>
   head(10) |> 
   mutate(llm = llm_sentiment(review, options = c("positive", "negative"))) |> 
@@ -340,8 +344,7 @@ llm_sentiment <- function(x) {
   system_msg <- paste(
     "You are a helpful sentiment analysis engine.",
     "You will only return one of three responses: positive, negative, neutral.",
-    "The prompt will include a list in JSON format that needs to be analyzed.",
-    "Return a response for each of the items in that list.",
+    "The prompt will be a list in JSON format that needs to be analyzed.",
     "The response hast to be a list of the results, no explanations.",
     "No capitalization.",
     "The response needs to be comma separated, no spaces after the comma."
@@ -360,5 +363,40 @@ llm_sentiment <- function(x) {
 }
 
 tic()
-llm_sentiment(data_bookReviews[1:2,]$review)
+llm_sentiment(data_bookReviews[1:10,]$review)
 toc()
+
+x <- data_bookReviews[1:3,]$review
+
+options <- paste0(c("positive", "negative", "neutral"), collapse = ", ")
+
+system_msg <- paste(
+  "You are a helpful classification engine.",
+  "You will only return ONLY one these responses per entry in the list: {options}.",
+  "The prompt will include a list in JSON format that needs to be analyzed.",
+  "The response hast to be a list of the results, no explanations.",
+  "No capitalization.",
+  "The response needs to be comma separated, no spaces."
+) |> 
+  glue()
+
+reviews <- data_bookReviews$review
+
+tic()
+list(1:2, 3:4, 5:6, 7:8, 9:10) |> 
+  map(~{
+    recs <- reviews[.x]
+    pred_str <- ollamar::chat(
+      model = "llama3.1",
+      messages = list(
+        list(role = "system", content = system_msg),
+        list(role = "user", content = as.character(toJSON(as.list(recs))))
+      ),
+      output = "text"
+    )
+    predictions <- strsplit(pred_str, ",")[[1]]
+    predictions  
+  })
+toc()
+
+
