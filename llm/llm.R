@@ -281,6 +281,84 @@ library(furrr)
 plan(multisession)
 data("data_bookReviews")
 tic()
-data_bookReviews[1:10,] |> 
-  mutate(sentiment = llm_sentiment(review))
+regular_purrr <- data_bookReviews[1:50,] |> 
+  mutate(sentiment = llm_sentiment(review)) |> 
+  pull(sentiment)
+toc()
+
+tic()
+with_furrr <- data_bookReviews[1:50,] |> 
+  mutate(sentiment = llm_sentiment_parallel(review)) |> 
+  pull(sentiment)
+toc()
+
+plan(multisession)
+tic()
+mixed <- list(1:25, 26:50) |> #list(1:10, 11:20, 21:30, 31:40, 41:50) |> 
+  furrr::future_map({~
+      llm_sentiment(data_bookReviews[.x,]$review)
+  })
+toc()
+
+
+
+llm_sentiment <- function(x, options = c("positive", "negative", "neutral")) {
+  
+  options <- paste0("'", options, "'", collapse = ",")
+  
+  system_msg <- paste(
+    "You are a helpful sentiment analysis engine.",
+    "You will only return one of three responses: {prompt}.",
+    "The prompt will include a list in JSON format that needs to be analyzed.",
+    "Return a response for each of the items in that list.",
+    "The response hast to be a list of the results, no explanations.",
+    "No capitalization.",
+    "The response needs to be comma separated, no spaces."
+  ) |> 
+    glue()
+  
+  x |> 
+    map_chr(
+      ~ {
+        tic()
+        ollamar::generate(
+          model = "llama3.1",
+          system = system_msg,
+          prompt = .x), 
+          output = "text"
+        )      
+        capture.output(toc())
+      },
+      .progress = TRUE
+    )
+}
+
+
+
+llm_sentiment <- function(x) {
+  
+  system_msg <- paste(
+    "You are a helpful sentiment analysis engine.",
+    "You will only return one of three responses: positive, negative, neutral.",
+    "The prompt will include a list in JSON format that needs to be analyzed.",
+    "Return a response for each of the items in that list.",
+    "The response hast to be a list of the results, no explanations.",
+    "No capitalization.",
+    "The response needs to be comma separated, no spaces after the comma."
+  )
+  
+  pred_str <- ollamar::chat(
+    model = "llama3.1",
+    messages = list(
+      list(role = "system", content = system_msg),
+      list(role = "user", content = jsonlite::toJSON(x))
+    ),
+    output = "text"
+  )
+  predictions <- strsplit(pred_str, ",")[[1]]
+  predictions
+}
+
+tic()
+llm_sentiment(data_bookReviews[1:2,]$review)
 toc()
