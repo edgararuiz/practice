@@ -399,4 +399,33 @@ list(1:2, 3:4, 5:6, 7:8, 9:10) |>
   })
 toc()
 
+library(classmap)
+library(purrr)
+library(glue)
+data(data_bookReviews)
 
+options <- paste0(c("positive", "negative", "neutral"), collapse = ", ")
+
+system_msg <- paste(
+  "You are a helpful classification engine.",
+  "You will only return ONLY one these responses per entry in the list: {options}.",
+  "The prompt will include a list in JSON format that needs to be analyzed.",
+  "The response hast to be a list of the results, no explanations.",
+  "No capitalization.",
+  "The response needs to be comma separated, no spaces."
+) |> 
+  glue()
+
+
+data_bookReviews$review |> 
+  head(10) |> 
+  map_chr(~{
+    prompt <- glue("You are a helpful classification engine. Return only one of the following answers: {options}. No capitalization. No explanations. The answer is based on the following text: {.x}")
+    ollamar::chat(
+      model = "llama3.1",
+      messages = list(
+        list(role = "user", content = prompt)
+      ),
+      output = "text"
+    )
+  })
