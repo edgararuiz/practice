@@ -455,3 +455,53 @@ data_bookReviews$review |>
   )
 toc()
 
+
+# New functions--------------------
+library(dplyr)
+library(classmap)
+library(purrr)
+library(glue)
+data(data_bookReviews)
+
+llm_generate <- function(x, base_prompt) {
+    map_chr(x, ~{
+      ollamar::chat(
+        model = "llama3.1",
+        messages = list(
+          list(role = "user", content = glue("{base_prompt} {.x}"))
+        ),
+        output = "text"
+      )
+    }, 
+    .progress = TRUE
+    )
+}
+
+llm_sentiment <- function(x, options = c("positive", "negative", "neutral")) {
+  base_prompt <- glue(
+    "You are a helpful sentiment engine.",
+    "Return only one of the following answers: {options}.",
+    "No capitalization. No explanations.",
+    "The answer is based on the following text:"
+  )
+  llm_generate(x = x, base_prompt = base_prompt)
+}
+
+llm_summarize <- function(x, no_words = 100) {
+  base_prompt <- glue(
+    "You are a helpful summarization engine.",
+    "Your answer will contain no no capitalization and no explanations.",
+    "Return no more than {no_words} words", 
+    "The answer is the summary of the following text:"
+  )
+  llm_generate(x = x, base_prompt = base_prompt)
+}
+
+
+
+data_bookReviews |> 
+  head() |> 
+  mutate(summary = llm_summarize(review, 10))
+
+
+
