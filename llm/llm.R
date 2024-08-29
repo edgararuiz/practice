@@ -416,16 +416,42 @@ system_msg <- paste(
 ) |> 
   glue()
 
+prompt <- glue(
+  "You are a helpful sentiment engine.",
+  "Return only one of the following answers: {options}.",
+  "No capitalization. No explanations.",
+  "The answer is based on the following text:"
+)
 
+prompt <- glue(
+  "You are a helpful classification engine.",
+  "Look for and return the following: name of the book being reviewed.",
+  "No capitalization. No explanations.",
+  "The answer is based on the following text:"
+)
+
+
+prompt <- glue(
+  "You are a helpful summarization engine.",
+  "Your answer will contain no no capitalization and no explanations.",
+  "Return no more than 20 words", 
+  "The answer is the summary of the following text:"
+)
+
+
+tic()
 data_bookReviews$review |> 
   head(10) |> 
   map_chr(~{
-    prompt <- glue("You are a helpful classification engine. Return only one of the following answers: {options}. No capitalization. No explanations. The answer is based on the following text: {.x}")
     ollamar::chat(
       model = "llama3.1",
       messages = list(
-        list(role = "user", content = prompt)
+        list(role = "user", content = glue("{prompt} {.x}"))
       ),
       output = "text"
     )
-  })
+  }, 
+  .progress = TRUE
+  )
+toc()
+
