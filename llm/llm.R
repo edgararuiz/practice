@@ -478,6 +478,7 @@ llm_generate <- function(x, base_prompt) {
 }
 
 llm_sentiment <- function(x, options = c("positive", "negative", "neutral")) {
+  options <- paste0(options, collapse = ", ")
   base_prompt <- glue(
     "You are a helpful sentiment engine.",
     "Return only one of the following answers: {options}.",
@@ -497,11 +498,13 @@ llm_summarize <- function(x, no_words = 100) {
   llm_generate(x = x, base_prompt = base_prompt)
 }
 
-
+llm_sentiment("I did not like this book")
+llm_sentiment("This is the best washer ever!")
 
 data_bookReviews |> 
   head() |> 
-  mutate(summary = llm_summarize(review, 10))
+  mutate(sentiment = llm_sentiment(review))
+  #mutate(summary = llm_summarize(review, 10))
 
 
 
