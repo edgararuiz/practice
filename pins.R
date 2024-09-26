@@ -45,6 +45,17 @@ host_url |>
   resp_body_json() |> 
   list_flatten() 
 
+new_folder <- host_url |> 
+  url_build() |> 
+  request() |> 
+  req_method("PUT") |> 
+  req_url_path_append("/api/2.0/fs/directories/") |> 
+  req_url_path_append("Volumes/workshops/models/vetiver/mtcars/new2") |> 
+  req_auth_bearer_token(Sys.getenv("DATABRICKS_TOKEN")) |> 
+  req_perform() 
+
+new_folder$status_code
+
 
 paste0(
   "https://rstudio-partner-posit-default.cloud.databricks.com",
