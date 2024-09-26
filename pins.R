@@ -23,7 +23,7 @@ host_url |>
   list_flatten() |> 
   map(~.x$name)
 
-host_url |> 
+volumes <- host_url |> 
   url_build() |> 
   request() |> 
   req_url_path_append("/api/2.1/unity-catalog/volumes") |> 
@@ -31,9 +31,21 @@ host_url |>
   req_url_query(catalog_name = "workshops", schema_name = "models") |> 
   req_perform() |> 
   resp_body_json() |> 
-  list_flatten() |> 
-  map(~.x$name)
+  list_flatten() 
   
+volumes$volumes$full_name
+
+host_url |> 
+  url_build() |> 
+  request() |> 
+  req_url_path_append("/api/2.0/fs/directories/Volumes/workshops/models/vetiver/mtcars") |> 
+  req_auth_bearer_token(Sys.getenv("DATABRICKS_TOKEN")) |> 
+  #req_url_query(directory_path = "Volumes/workshops/models/vetiver/mtcars") |> 
+  req_perform() |> 
+  resp_body_json() |> 
+  list_flatten() 
+
+
 paste0(
   "https://rstudio-partner-posit-default.cloud.databricks.com",
   "/api/2.1/unity-catalog/catalogs"
