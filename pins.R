@@ -15,13 +15,25 @@ host_url |>
   request() |> 
   req_url_path_append("/api/2.1/unity-catalog/catalogs") |> 
   req_auth_bearer_token(Sys.getenv("DATABRICKS_TOKEN")) |> 
-  req_headers(catalog_name = "workshops") |> 
+  #req_headers(catalog_name = "workshops") |> 
   #req_body_json(list(catalog_name = "workshops")) |> 
-  req_perform(verbosity = 3) |> 
+  req_url_query(catalog_name = "workshops") |> 
+  req_perform() |> 
   resp_body_json() |> 
   list_flatten() |> 
   map(~.x$name)
 
+host_url |> 
+  url_build() |> 
+  request() |> 
+  req_url_path_append("/api/2.1/unity-catalog/volumes") |> 
+  req_auth_bearer_token(Sys.getenv("DATABRICKS_TOKEN")) |> 
+  req_url_query(catalog_name = "workshops", schema_name = "models") |> 
+  req_perform() |> 
+  resp_body_json() |> 
+  list_flatten() |> 
+  map(~.x$name)
+  
 paste0(
   "https://rstudio-partner-posit-default.cloud.databricks.com",
   "/api/2.1/unity-catalog/catalogs"
@@ -66,21 +78,24 @@ host_url |>
 
 
 headers <- c(Authentication = paste("Bearer", Sys.getenv("DATABRICKS_TOKEN"))) 
-headers["Connection"] <- "close"
-body <- NULL
-if (!is.null(body)) {
-  body <- base::Filter(length, body)
-  body <- jsonlite::toJSON(body, auto_unbox = TRUE, digits = 22, null = "null")
-}
+#headers["Connection"] <- "close"
+#body <- NULL
 url <- paste0(
   "https://rstudio-partner-posit-default.cloud.databricks.com",
   "/api/2.1/unity-catalog/volumes"
 )
 method <- "GET"
 query <- list(catalog_name = "workshops", schema_name = "models")
-response <- httr::VERB(method, url, httr::add_headers(headers), httr::user_agent("test"),
-                       httr::config(verbose = FALSE, connecttimeout = 30), httr::accept_json(),
-                       httr::write_memory(), query = base::Filter(length, query), body = body)
+response <- httr::GET(
+  url = url, 
+  httr::add_headers(headers), 
+  #httr::user_agent("test"),
+  #httr::config(verbose = FALSE, connecttimeout = 30), 
+  #httr::accept_json(),
+  #httr::write_memory(), 
+  #query = base::Filter(length, query),
+  query = query
+  )
 
 json_string <- httr::content(response, as = "text", encoding = "UTF-8")
 jsonlite::fromJSON(json_string)
