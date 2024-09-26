@@ -70,6 +70,19 @@ new_folder <- host_url |>
 
 new_folder$status_code
 
+
+
+host_url |> 
+  url_build() |> 
+  request() |> 
+  req_method("GET") |> 
+  req_url_path_append("/api/2.0/fs/files/") |> 
+  req_url_path_append("Volumes/workshops/models/vetiver/mtcars/new2/test.txt") |> 
+  req_auth_bearer_token(Sys.getenv("DATABRICKS_TOKEN")) |> 
+  req_perform() |> 
+  resp_body_string()
+
+
 paste0(
   "https://rstudio-partner-posit-default.cloud.databricks.com",
   "/api/2.1/unity-catalog/catalogs"
