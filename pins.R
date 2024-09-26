@@ -56,6 +56,19 @@ new_folder <- host_url |>
 
 new_folder$status_code
 
+writeLines("this is a test", "test.txt")
+
+new_folder <- host_url |> 
+  url_build() |> 
+  request() |> 
+  req_method("PUT") |> 
+  req_url_path_append("/api/2.0/fs/files/") |> 
+  req_url_path_append("Volumes/workshops/models/vetiver/mtcars/new2/test.txt") |> 
+  req_body_file("test.txt") |> 
+  req_auth_bearer_token(Sys.getenv("DATABRICKS_TOKEN")) |> 
+  req_perform() 
+
+new_folder$status_code
 
 paste0(
   "https://rstudio-partner-posit-default.cloud.databricks.com",
