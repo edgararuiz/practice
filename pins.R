@@ -38,9 +38,9 @@ volumes$volumes$full_name
 host_url |> 
   url_build() |> 
   request() |> 
-  req_url_path_append("/api/2.0/fs/directories/Volumes/workshops/models/vetiver/mtcars") |> 
+  req_url_path_append("/api/2.0/fs/directories/") |> 
+  req_url_path_append("Volumes/workshops/models/vetiver/mtcars") |> 
   req_auth_bearer_token(Sys.getenv("DATABRICKS_TOKEN")) |> 
-  #req_url_query(directory_path = "Volumes/workshops/models/vetiver/mtcars") |> 
   req_perform() |> 
   resp_body_json() |> 
   list_flatten() 
@@ -84,8 +84,6 @@ host_url |>
   req_headers(name = "workshops.models.vetiver") |> 
   req_perform()
 
-
-#curl --request GET "https://${DATABRICKS_HOST}api/2.1/unity-catalog/volumes/" --header "Authorization: Bearer ${DATABRICKS_TOKEN}" | jq .
 
 
 
