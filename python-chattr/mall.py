@@ -1,20 +1,17 @@
 import polars as pl
 
-@pl.api.register_dataframe_namespace("split")
-class SplitFrame:
+@pl.api.register_dataframe_namespace("llm")
+class MallFrame:
     def __init__(self, df: pl.DataFrame) -> None:
         self._df = df
 
-    def by_alternate_rows(self) -> list[pl.DataFrame]:
-        df = self._df.with_row_index(name="n")
-        return [
-            df.filter((pl.col("n") % 2) == 0).drop("n"),
-            df.filter((pl.col("n") % 2) != 0).drop("n"),
-        ]
+    def sentiment(self, col) -> list[pl.DataFrame]:
+        return(self._df[col])
 
 
-pl.DataFrame(
-    data=["aaa", "bbb", "ccc", "ddd", "eee", "fff"],
+df = pl.DataFrame(
+    data=["I am happy", "I am sad"],
     schema=[("txt", pl.String)],
-).split.by_alternate_rows()
+)
 
+df.llm.sentiment("txt")
