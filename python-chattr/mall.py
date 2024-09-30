@@ -6,7 +6,12 @@ class MallFrame:
         self._df = df
 
     def sentiment(self, col) -> list[pl.DataFrame]:
-        return(self._df[col])
+        df = self._df.with_columns(  
+           pl.col(col)
+            .map_elements(lambda x: len(x), return_dtype=pl.Int64)
+            .alias("a_times_2")
+            )
+        return(df)
 
 
 df = pl.DataFrame(
@@ -15,3 +20,4 @@ df = pl.DataFrame(
 )
 
 df.llm.sentiment("txt")
+
