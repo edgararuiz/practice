@@ -45,14 +45,24 @@ host_url |>
   resp_body_json() |> 
   list_flatten() 
 
-new_folder <- host_url |> 
+ host_url |> 
   url_build() |> 
   request() |> 
-  req_method("PUT") |> 
-  req_url_path_append("/api/2.0/fs/directories/") |> 
-  req_url_path_append("Volumes/workshops/models/vetiver/mtcars/new2") |> 
+  req_method("DELETE") |> 
+  req_url_path_append("/api/2.0/fs/directories") |> 
+  req_url_path_append("/Volumes/workshops/models/vetiver/iris") |> 
   req_auth_bearer_token(Sys.getenv("DATABRICKS_TOKEN")) |> 
   req_perform() 
+ 
+ host_url |> 
+   url_build() |> 
+   request() |> 
+   req_method("GET") |> 
+   req_url_path_append("/api/2.0/fs/directories") |> 
+   req_url_path_append("/Volumes/workshops/models/vetiver/iris") |> 
+   req_auth_bearer_token(Sys.getenv("DATABRICKS_TOKEN")) |> 
+   req_perform() |> 
+   resp_body_json()
 
 new_folder$status_code
 
@@ -63,7 +73,7 @@ new_folder <- host_url |>
   request() |> 
   req_method("PUT") |> 
   req_url_path_append("/api/2.0/fs/files/") |> 
-  req_url_path_append("Volumes/workshops/models/vetiver/mtcars/new2/test.txt") |> 
+  req_url_path_append("Volumes/workshops/models/vetiver/test3/new2/test.txt") |> 
   req_body_file("test.txt") |> 
   req_auth_bearer_token(Sys.getenv("DATABRICKS_TOKEN")) |> 
   req_perform() 
