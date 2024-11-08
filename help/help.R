@@ -13,7 +13,18 @@ if(topic == path_file(help_path) && is.null(package)) {
 }
 db <- Rd_db(package)
 rd_content <- db[[path(topic, ext = "Rd")]]
+
+for(i in seq_along(rd_content)) {
+  rd_i <- rd_content[[i]]
+  print(attr(rd_i, "Rd_tag"))
+}
+
+new_content <- rd_content[[1]][[1]]
+new_content[[1]] <- llm_vec_translate(new_content[[1]], "spanish")
+rd_content[[1]][[1]] <- new_content
+
 rd_text <- paste0(as.character(rd_content), collapse = "")
 writeLines(rd_text, "content.Rd")
 rstudioapi::previewRd("content.Rd")
+
 
