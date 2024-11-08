@@ -28,11 +28,14 @@ new_content <- rd_content[[1]][[1]]
 new_content[[1]] <- llm_vec_translate(new_content[[1]], "spanish")
 rd_content[[1]][[1]] <- new_content
 
-rd_content2 <- rd_content[[8]]
-attributes(rd_content2) <- NULL
-class(rd_content2) <- "Rd"
-rd_text <- paste0(as.character(rd_content2), collapse = "")
-writeLines(rd_text, "content.Rd")
-original <- paste0(capture.output(Rd2txt("content.Rd", fragment = TRUE)), collapse = "")
-llm_vec_translate(original, "spanish")
+extract_text <- function(x) {
+  attributes(x) <- NULL
+  class(x) <- "Rd"
+  rd_text <- paste0(as.character(x), collapse = "")
+  temp_rd <- tempfile(fileext = ".Rd")
+  writeLines(rd_text, temp_rd)
+  rd_txt <- capture.output(Rd2txt(temp_rd, fragment = TRUE))
+  paste0(rd_txt, collapse = "")
+}
+extract_text(rd_content[[8]])
 
