@@ -4,8 +4,10 @@ library(tools)
 library(fs)
 library(pkgsite)
 
-topic <- "llm_classify"
-package <- NULL
+llm_use("ollama", "llama3.2", seed = 100)
+
+topic <- "summarise"
+package <- "dplyr"
 help_file <- help(topic, help_type = "text")
 help_path <- as.character(help_file)
 
@@ -27,26 +29,40 @@ extract_text <- function(x) {
   paste0(rd_txt, collapse = "")
 }
 
+prep_translate <- function(x) {
+  tag_text <- llm_vec_translate(extract_text(x), "spanish")
+  #tag_text <- "x"
+  attrs <- attributes(x[[1]])
+  attr(attrs, "Rd_tag") <- "TEXT"
+  attributes(tag_text) <- attrs
+  obj <- list(tag_text)
+  attributes(obj) <- attributes(x)
+  obj
+}
+
 tag_text <- NULL
 for(i in seq_along(rd_content)) {
   rd_i <- rd_content[[i]]
   tag_name <- attr(rd_i, "Rd_tag")
+  print(tag_name)
   if(tag_name %in% c("\\title", "\\description", "\\value", "\\details")) {
-    tag_text <- llm_vec_translate(extract_text(rd_i), "spanish")
-    attrs <- attributes(rd_i[[1]])
-    attr(attrs, "Rd_tag") <- "TEXT"
-    attributes(tag_text) <- attrs
-    obj <- list(tag_text)
-    attributes(obj) <- attributes(rd_i)
-    rd_content[[i]] <- obj
+    rd_content[[i]] <- prep_translate(rd_i)
+  }
+  if(tag_name == "\\section") {
+    rd_content[[i]][[1]] <- prep_translate(rd_i[[1]])
+    rd_content[[i]][[2]] <- prep_translate(rd_i[[2]])
+  }
+  if(tag_name == "\\arguments") {
+    for(k in seq_along(rd_i)) {
+      rd_k <- rd_i[[k]]
+      if(length(rd_k) > 1) {
+        rd_i[[k]][[2]] <- prep_translate(rd_k[[2]])
+      }
+    }    
+    rd_content[[i]] <- rd_i
   }
 }
 
 rd_text <- paste0(as.character(rd_content), collapse = "")
 writeLines(rd_text, "content.Rd")
 rstudioapi::previewRd("content.Rd")
-
-#llm_vec_translate(paste0(rd_content[[5]], collapse = ""), "spanish")
-# new_content <- rd_content[[1]][[1]]
-# new_content[[1]] <- llm_vec_translate(new_content[[1]], "spanish")
-# rd_content[[1]][[1]] <- new_content
