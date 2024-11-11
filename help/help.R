@@ -4,9 +4,9 @@ library(tools)
 library(fs)
 library(pkgsite)
 
-llm_use("ollama", "llama3.2", seed = 100)
+llm_use("ollama", "llama3.2", seed = 100, .cache = "_temp_folder")
 
-topic <- "summarise"
+topic <- "mutate"
 package <- "dplyr"
 help_file <- help(topic, help_type = "text")
 help_path <- as.character(help_file)
@@ -26,12 +26,12 @@ extract_text <- function(x) {
   temp_rd <- tempfile(fileext = ".Rd")
   writeLines(rd_text, temp_rd)
   rd_txt <- capture.output(Rd2txt(temp_rd, fragment = TRUE))
+  rd_txt[rd_txt == ""] <- "\n\n"
   paste0(rd_txt, collapse = "")
 }
 
 prep_translate <- function(x) {
-  tag_text <- llm_vec_translate(extract_text(x), "spanish")
-  #tag_text <- "x"
+  tag_text <- llm_vec_translate(extract_text(x), "french")
   attrs <- attributes(x[[1]])
   attr(attrs, "Rd_tag") <- "TEXT"
   attributes(tag_text) <- attrs
