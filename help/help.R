@@ -2,6 +2,7 @@ library(mall)
 library(tools)
 library(fs)
 library(cli)
+library(rlang)
 
 helpr <- function(topic, package = NULL, lang = Sys.getenv("LANG")) {
   help_file <- help(topic, help_type = "text")
@@ -42,7 +43,18 @@ helpr <- function(topic, package = NULL, lang = Sys.getenv("LANG")) {
   cli_progress_update()
   rd_text <- paste0(as.character(rd_content), collapse = "")
   writeLines(rd_text, "content.Rd")
-  rstudioapi::previewRd("content.Rd")
+  #rstudioapi::previewRd("content.Rd")
+
+  structure(
+    list(
+      topic = topic,
+      pkg = package,
+      path = "content.Rd",
+      stage = "render",
+      type = getOption("help_type")
+    ),
+    class = "lang_topic"
+  )  
 }
 
 code_markers <- function(x) {
@@ -88,4 +100,49 @@ prep_translate <- function(x, lang) {
   obj <- list(tag_text)
   attributes(obj) <- attributes(x)
   obj
+}
+
+
+print.lang_topic <- function(x, ...) {
+  type <- arg_match0(x$type %||% "text", c("text", "html"))
+  # Use rstudio's previewRd() if possible
+  if (type == "html" && rstudioapi_available()) {
+    return(rstudioapi::callFun("previewRd", x$path))
+  }
+  
+  # otherwise render and serve
+  file <- fs::path_ext_set(fs::path_file(x$path), type)
+  
+  # This directory structure is necessary for RStudio to open the
+  # .html file in the help pane (see rstudio/rstudio#11336)
+  doc_path <- fs::path("doc", "html", file)
+  path <- fs::path(tempdir(), ".R", doc_path)
+  fs::dir_create(fs::path_dir(path), recurse = TRUE)
+  
+  if (type == "text") {
+    topic_write_text(x, path)
+    title <- paste(x$pkg, basename(x$path), sep = ":")
+    file.show(path, title = title)
+  } else if (type == "html") {
+    topic_write_html(x, path)
+    
+    if (is_rstudio()) {
+      # This localhost URL is also part of getting RStudio to open in
+      # the help pane
+      port <- httpdPort()
+      url <- sprintf("http://localhost:%i/%s", port, doc_path)
+    } else {
+      url <- path
+    }
+    
+    utils::browseURL(url)
+  }
+}
+
+on_load(
+  httpdPort %<~% env_get(rlang::ns_env("tools"), "httpdPort")
+)
+
+rstudioapi_available <- function() {
+  is_installed("rstudioapi") && rstudioapi::isAvailable()
 }
