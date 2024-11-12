@@ -1,37 +1,61 @@
-
-
 library(mall)
-library(ggplot2)
 library(tools)
 library(fs)
-library(pkgsite)
+library(cli)
 
-llm_use("ollama", "llama3.2", seed = 100, .cache = "_temp_folder")
-
-topic <- "group_by"
-package <- "dplyr"
-help_file <- help(topic, help_type = "text")
-help_path <- as.character(help_file)
-
-if(topic == path_file(help_path) && is.null(package)) {
-  help_folder <- path_dir(help_path)
-  help_pkg <- path_dir(help_folder)  
-  package <- path_file(help_pkg)
+helpr <- function(topic, package = NULL, lang = Sys.getenv("LANG")) {
+  help_file <- help(topic, help_type = "text")
+  help_path <- as.character(help_file)
+  if (topic == path_file(help_path) && is.null(package)) {
+    help_folder <- path_dir(help_path)
+    help_pkg <- path_dir(help_folder)
+    package <- path_file(help_pkg)
+  }
+  db <- Rd_db(package)
+  rd_content <- db[[path(topic, ext = "Rd")]]
+  tag_text <- NULL
+  tag_name <- NULL
+  cli_progress_message("Translating: {.emph {substr(tag_name, 2, nchar(tag_name))}}")
+  for (i in seq_along(rd_content)) {
+    rd_i <- rd_content[[i]]
+    tag_name <- attr(rd_i, "Rd_tag")
+    standard_tags <- c("\\title", "\\description", "\\value", "\\details", "\\seealso")
+    cli_progress_update()
+    if (tag_name %in% standard_tags) {
+      rd_content[[i]] <- prep_translate(rd_i, lang)
+    }
+    if (tag_name == "\\section") {
+      rd_content[[i]][[1]] <- prep_translate(rd_i[[1]], lang)
+      rd_content[[i]][[2]] <- prep_translate(rd_i[[2]], lang)
+    }
+    if (tag_name == "\\arguments") {
+      for (k in seq_along(rd_i)) {
+        rd_k <- rd_i[[k]]
+        if (length(rd_k) > 1) {
+          rd_i[[k]][[2]] <- prep_translate(rd_k[[2]], lang)
+        }
+      }
+      rd_content[[i]] <- rd_i
+    }
+  }
+  tag_name <- NULL
+  cli_progress_update()
+  rd_text <- paste0(as.character(rd_content), collapse = "")
+  writeLines(rd_text, "content.Rd")
+  rstudioapi::previewRd("content.Rd")
 }
-db <- Rd_db(package)
-rd_content <- db[[path(topic, ext = "Rd")]]
 
 code_markers <- function(x) {
   split_out <- strsplit(x, "'")[[1]]
   split_out
   new_txt <- NULL
   start_code <- TRUE
-  for(i in seq_along(split_out)) {
-    if(start_code) {
-      if(i == length(split_out)) {
+  for (i in seq_along(split_out)) {
+    if (start_code) {
+      if (i == length(split_out)) {
         code_txt <- NULL
       } else {
-        code_txt <- "\\code{"    
+        code_txt <- "\\code{"
       }
       start_code <- FALSE
     } else {
@@ -55,8 +79,8 @@ extract_text <- function(x) {
   out
 }
 
-prep_translate <- function(x) {
-  tag_text <- llm_vec_translate(extract_text(x), "spanish")
+prep_translate <- function(x, lang) {
+  tag_text <- llm_vec_translate(extract_text(x), lang, additional_prompt = "Do not translate function names.")
   tag_text <- code_markers(tag_text)
   attrs <- attributes(x[[1]])
   attr(attrs, "Rd_tag") <- "TEXT"
@@ -66,30 +90,6 @@ prep_translate <- function(x) {
   obj
 }
 
-tag_text <- NULL
-for(i in seq_along(rd_content)) {
-  rd_i <- rd_content[[i]]
-  tag_name <- attr(rd_i, "Rd_tag")
-  print(tag_name)
-  if(tag_name %in% c("\\title", "\\description", "\\value", "\\details")) {
-    rd_content[[i]] <- prep_translate(rd_i)
-  }
-  if(tag_name == "\\section") {
-    rd_content[[i]][[1]] <- prep_translate(rd_i[[1]])
-    rd_content[[i]][[2]] <- prep_translate(rd_i[[2]])
-  }
-  if(tag_name == "\\arguments") {
-    for(k in seq_along(rd_i)) {
-      rd_k <- rd_i[[k]]
-      if(length(rd_k) > 1) {
-        rd_i[[k]][[2]] <- prep_translate(rd_k[[2]])
-      }
-    }    
-    rd_content[[i]] <- rd_i
-  }
-}
 
-rd_text <- paste0(as.character(rd_content), collapse = "")
-writeLines(rd_text, "content.Rd")
-rstudioapi::previewRd("content.Rd")
-
+llm_use("ollama", "llama3.2", seed = 100, .cache = "_temp_folder")
+helpr("aes", "ggplot2", "spanish")
