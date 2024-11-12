@@ -89,7 +89,3 @@ prep_translate <- function(x, lang) {
   attributes(obj) <- attributes(x)
   obj
 }
-
-
-llm_use("ollama", "llama3.2", seed = 100, .cache = "_temp_folder")
-helpr("aes", "ggplot2", "spanish")
