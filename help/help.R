@@ -4,7 +4,7 @@ library(fs)
 library(cli)
 library(rlang)
 
-helpr <- function(topic, package = NULL, lang = Sys.getenv("LANG")) {
+helpr <- function(topic, package = NULL, lang = Sys.getenv("LANG"), type = getOption("help_type")) {
   help_file <- help(topic, help_type = "text")
   help_path <- as.character(help_file)
   if (topic == path_file(help_path) && is.null(package)) {
@@ -38,20 +38,22 @@ helpr <- function(topic, package = NULL, lang = Sys.getenv("LANG")) {
       }
       rd_content[[i]] <- rd_i
     }
+    if (tag_name == "\\name") {
+      topic_name <- rd_i
+    }
   }
   tag_name <- NULL
   cli_progress_update()
   rd_text <- paste0(as.character(rd_content), collapse = "")
-  writeLines(rd_text, "content.Rd")
-  #rstudioapi::previewRd("content.Rd")
-
+  topic_path <- fs::path(tempdir(), topic_name, ext = "Rd")
+  writeLines(rd_text, topic_path)
   structure(
     list(
       topic = topic,
       pkg = package,
-      path = "content.Rd",
+      path = topic_path,
       stage = "render",
-      type = getOption("help_type")
+      type = type
     ),
     class = "lang_topic"
   )  
@@ -105,7 +107,6 @@ prep_translate <- function(x, lang) {
 
 print.lang_topic <- function(x, ...) {
   type <- arg_match0(x$type %||% "text", c("text", "html"))
-  # Use rstudio's previewRd() if possible
   if (type == "html" && rstudioapi_available()) {
     return(rstudioapi::callFun("previewRd", x$path))
   }
