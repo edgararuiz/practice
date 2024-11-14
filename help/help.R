@@ -87,7 +87,7 @@ extract_text <- function(x) {
   rd_text <- paste0(as.character(x), collapse = "")
   temp_rd <- tempfile(fileext = ".Rd")
   writeLines(rd_text, temp_rd)
-  rd_txt <- capture.output(Rd2txt(temp_rd, fragment = TRUE))
+  rd_txt <<- capture.output(Rd2txt(temp_rd, fragment = TRUE))
   rd_txt[rd_txt == ""] <- "\n\n"
   out <- paste0(rd_txt, collapse = "")
   out
@@ -115,3 +115,33 @@ print.lang_topic <- function(x, ...) {
 rstudioapi_available <- function() {
   is_installed("rstudioapi") && rstudioapi::isAvailable()
 }
+
+
+library(htm2txt)
+
+rd_i <- rd_content[[12]]
+code_text <- extract_text(rd_i)
+
+
+
+strsplit(code_text, "\n\n")[[1]]
+
+
+extract_html <- function(x) {
+  attributes(x) <- NULL
+  class(x) <- "Rd"
+  rd_text <- paste0(as.character(x), collapse = "")
+  temp_rd <- tempfile(fileext = ".Rd")
+  writeLines(rd_text, temp_rd)
+  rd_txt <- capture.output(Rd2HTML(temp_rd, fragment = TRUE))
+  #rd_txt[rd_txt == ""] <- "\n\n"
+  #out <- paste0(rd_txt, collapse = "")
+  #out
+  rd_txt
+}
+
+rd_txt <- extract_html(rd_i)
+rd_txt <- htm2txt(rd_txt)
+rd_txt <- rd_txt[rd_txt != ""] 
+rd_txt
+
