@@ -45,14 +45,16 @@ helpr <- function(topic, package = NULL, lang = Sys.getenv("LANG"), type = getOp
       for(k in seq_along(rd_i)) {
         rd_k <- rd_i[[k]]
         rd_char <- as.character(rd_k)
-        if(substr(rd_char, 1, 2) == "# ") {
-          last_char <- substr(rd_char, nchar(rd_char), nchar(rd_char))
-          n_char <- ifelse(last_char == "\n", 1, 0) 
-          rd_char <- substr(rd_char, 3, nchar(rd_char) - n_char)
-          rd_char <- llm_vec_translate(rd_char, lang)
-          rd_char <- paste0("# ", rd_char, "\n")
-          attributes(rd_char) <- attributes(rd_k)
-          rd_i[[k]] <- rd_char
+        if(length(rd_char) == 1) {
+          if(substr(rd_char, 1, 2) == "# ") {
+            last_char <- substr(rd_char, nchar(rd_char), nchar(rd_char))
+            n_char <- ifelse(last_char == "\n", 1, 0) 
+            rd_char <- substr(rd_char, 3, nchar(rd_char) - n_char)
+            rd_char <- llm_vec_translate(rd_char, lang)
+            rd_char <- paste0("# ", rd_char, "\n")
+            attributes(rd_char) <- attributes(rd_k)
+            rd_i[[k]] <- rd_char
+          }          
         }
       }  
       rd_content[[i]] <- rd_i
@@ -116,7 +118,7 @@ extract_text <- function(x, collapse = TRUE) {
 }
 
 prep_translate <- function(x, lang) {
-  tag_text <- llm_vec_translate(extract_text(x), lang, additional_prompt = "Do not translate function names.")
+  tag_text <- llm_vec_translate(extract_text(x), lang)
   tag_text <- code_markers(tag_text)
   attrs <- attributes(x[[1]])
   attr(attrs, "Rd_tag") <- "TEXT"
@@ -137,17 +139,3 @@ print.lang_topic <- function(x, ...) {
 rstudioapi_available <- function() {
   is_installed("rstudioapi") && rstudioapi::isAvailable()
 }
-
-extract_html <- function(x) {
-  attributes(x) <- NULL
-  class(x) <- "Rd"
-  rd_text <- paste0(as.character(x), collapse = "")
-  temp_rd <- tempfile(fileext = ".Rd")
-  writeLines(rd_text, temp_rd)
-  rd_txt <- capture.output(Rd2HTML(temp_rd, fragment = TRUE))
-  rd_txt <- htm2txt(rd_txt)
-  rd_txt <- rd_txt[rd_txt != ""] 
-  rd_txt
-}
-
-
