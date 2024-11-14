@@ -41,6 +41,22 @@ helpr <- function(topic, package = NULL, lang = Sys.getenv("LANG"), type = getOp
     if (tag_name == "\\name") {
       topic_name <- rd_i
     }
+    if (tag_name == "\\examples") {
+      for(k in seq_along(rd_i)) {
+        rd_k <- rd_i[[k]]
+        rd_char <- as.character(rd_k)
+        if(substr(rd_char, 1, 2) == "# ") {
+          last_char <- substr(rd_char, nchar(rd_char), nchar(rd_char))
+          n_char <- ifelse(last_char == "\n", 1, 0) 
+          rd_char <- substr(rd_char, 3, nchar(rd_char) - n_char)
+          rd_char <- llm_vec_translate(rd_char, lang)
+          rd_char <- paste0("# ", rd_char, "\n")
+          attributes(rd_char) <- attributes(rd_k)
+          rd_i[[k]] <- rd_char
+        }
+      }  
+      rd_content[[i]] <- rd_i
+    }
   }
   tag_name <- NULL
   cli_progress_update()
@@ -81,16 +97,22 @@ code_markers <- function(x) {
   paste0(new_txt, collapse = "")
 }
 
-extract_text <- function(x) {
+extract_text <- function(x, collapse = TRUE) {
   attributes(x) <- NULL
   class(x) <- "Rd"
-  rd_text <- paste0(as.character(x), collapse = "")
+  rd_text <- as.character(x)
+  if(collapse) {
+    rd_text <- paste0(as.character(x), collapse = "")
+  } 
   temp_rd <- tempfile(fileext = ".Rd")
   writeLines(rd_text, temp_rd)
-  rd_txt <<- capture.output(Rd2txt(temp_rd, fragment = TRUE))
-  rd_txt[rd_txt == ""] <- "\n\n"
-  out <- paste0(rd_txt, collapse = "")
-  out
+  rd_txt <- capture.output(Rd2txt(temp_rd, fragment = TRUE))
+  if(collapse) {
+    rd_txt[rd_txt == ""] <- "\n\n"
+    rd_txt <- paste0(rd_txt, collapse = "")
+    
+  }
+  rd_txt
 }
 
 prep_translate <- function(x, lang) {
@@ -116,17 +138,6 @@ rstudioapi_available <- function() {
   is_installed("rstudioapi") && rstudioapi::isAvailable()
 }
 
-
-library(htm2txt)
-
-rd_i <- rd_content[[12]]
-code_text <- extract_text(rd_i)
-
-
-
-strsplit(code_text, "\n\n")[[1]]
-
-
 extract_html <- function(x) {
   attributes(x) <- NULL
   class(x) <- "Rd"
@@ -134,14 +145,9 @@ extract_html <- function(x) {
   temp_rd <- tempfile(fileext = ".Rd")
   writeLines(rd_text, temp_rd)
   rd_txt <- capture.output(Rd2HTML(temp_rd, fragment = TRUE))
-  #rd_txt[rd_txt == ""] <- "\n\n"
-  #out <- paste0(rd_txt, collapse = "")
-  #out
+  rd_txt <- htm2txt(rd_txt)
+  rd_txt <- rd_txt[rd_txt != ""] 
   rd_txt
 }
 
-rd_txt <- extract_html(rd_i)
-rd_txt <- htm2txt(rd_txt)
-rd_txt <- rd_txt[rd_txt != ""] 
-rd_txt
 
