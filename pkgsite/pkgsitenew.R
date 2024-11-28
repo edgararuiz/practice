@@ -14,8 +14,8 @@ rd_extract_text <- function(x, collapse = TRUE) {
     rd_txt <- capture.output(tools::Rd2txt(temp_rd, fragment = TRUE))  
   )
   if (collapse) {
-    rd_txt[rd_txt == ""] <- "\n\n"
-    rd_txt <- paste0(rd_txt, collapse = "")
+    #rd_txt[rd_txt == ""] <- "\n\n"
+    rd_txt <- paste0(rd_txt, collapse = " ")
   }
   rd_txt
 }
@@ -41,6 +41,12 @@ rd_args_process <- function(x) {
 
 map(rd_content, \(x) {
   tag_name <- attr(x, "Rd_tag")
+  x_str <- as.character(x)[[1]]
+  source_prefix <- "% Please edit documentation in "
+  if(grepl(source_prefix, x_str)) {
+    x_str <- substr(x_str, nchar(source_prefix), nchar(x_str))
+    out <- list(source = trimws(x_str))
+  }
   if(grepl("\\\\", tag_name)) {
     tag_name <- substr(tag_name, 2, nchar(tag_name))
     if(tag_name == "arguments") {
@@ -48,10 +54,12 @@ map(rd_content, \(x) {
     } else {
       tag_text <- list(rd_extract_text(x))  
     }
-    set_names(tag_text, tag_name)
+    out <- set_names(tag_text, tag_name)
   }
+  out
 }) |> 
-  keep(\(x) !is.null(x))
+  keep(\(x) !is.null(x)) |> 
+  list_flatten() 
 
 
 
