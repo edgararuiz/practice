@@ -25,14 +25,36 @@ library(rlang)
 out <- list()
 rd_content <- tools::parse_Rd("~/Projects/pkgsite/man/rd_to_qmd.Rd")
 
+rd_args_process <- function(x) {
+  out <- map(x, \(x) {
+    name <- rd_extract_text(x[1])
+    val <- rd_extract_text(x[2])
+    if(name != "") {
+      out <- list(argument = name, description = val)
+    } else {
+      out <- NULL
+    }
+    out
+  }) 
+  keep(out, \(x) !is.null(x))
+}
+
 map(rd_content, \(x) {
   tag_name <- attr(x, "Rd_tag")
   if(grepl("\\\\", tag_name)) {
     tag_name <- substr(tag_name, 2, nchar(tag_name))
-    tag_text <- list(rd_extract_text(x))
+    if(tag_name == "arguments") {
+      tag_text <- list(rd_args_process(x))
+    } else {
+      tag_text <- list(rd_extract_text(x))  
+    }
     set_names(tag_text, tag_name)
   }
-})
+}) |> 
+  keep(\(x) !is.null(x))
+
+
+
 
 # 
 # 
