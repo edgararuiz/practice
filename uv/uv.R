@@ -118,17 +118,12 @@ uv_process("venv", "--allow-existing", "--python", "3.10")
 uv_install("polars", "jax")
 uv_install("notreal")
 
-
-library(rappdirs)
-library(fs)
-library(rlang)
-library(reticulate)
-uv_envs <- path_expand(path(user_data_dir(), "uv-envs"))
-uv_path <- path(uv_envs, paste0("r-", hash(path_expand(here::here()))))
-uv_process("venv",uv_path)
-
-dir_ls(uv_path)
+source("uv/uv-funs.R")
+uv_envs <- fs::path_expand(path(rappdirs::user_data_dir(), "uv-envs"))
+uv_path <- path(uv_envs, paste0("r-", hash(fs::path_expand(here::here()))))
+uv_process(uv_path, "--allow-existing", "--python", "3.10")
 
 use_virtualenv(uv_path)
 
+uv_install("polars")
 
