@@ -1,9 +1,11 @@
 library(reticulate)
 
 uv <- function(...) {
-  reticulate:::system2t(
+  system2(
     fs::path_rel("~/.local/bin/uv"),
-    paste(c(...), collapse = " ")
+    paste(c(...), collapse = " "), 
+    stderr = TRUE,
+    stdout = TRUE
     )
 }
 
@@ -18,8 +20,12 @@ uv_install <- function(..., python = py_exe()) {
     )
 }
 
-uv_install("polars", "jax")
-uv_install("jax")
+cli::cli_alert_success(uv_install("polars", "jax"))
+uv_install("-n", "jax")
 
 
 #fs::dir_delete(here::here(".venv"))
+
+library(processx)
+
+run("uv", "venv")
