@@ -113,7 +113,22 @@ uv_install("jax2")
 uv_install("numpy")
 
 
-uv_process("venv")
-use_virtualenv(here::here(".venv"))
+uv_process("venv", "--allow-existing", "--python", "3.10")
+
 uv_install("polars", "jax")
 uv_install("notreal")
+
+
+library(rappdirs)
+library(fs)
+library(rlang)
+library(reticulate)
+uv_envs <- path_expand(path(user_data_dir(), "uv-envs"))
+uv_path <- path(uv_envs, paste0("r-", hash(path_expand(here::here()))))
+uv_process("venv",uv_path)
+
+dir_ls(uv_path)
+
+use_virtualenv(uv_path)
+
+
