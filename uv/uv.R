@@ -40,6 +40,21 @@ while(x$is_alive()) {
   cat(x$read_output())
 }
 
+cat("\033[2mAudited \033[1m2 packages\033[0m \033[2min 1ms\033[0m\033[0m\n")
+cat("\033[1mAudited \033[1m2 packages\033[0m \033[1min 1ms\033[0m\033[0m\n")
+
+
+
+out <- "\033[2mAudited \033[1m2 packages\033[0m \033[2min 1ms\033[0m\033[0m\n"
+cat(out)
+out_split <- unlist(strsplit(out, "\\[2m"))
+out <- paste0(out_split, collapse = "[1m")
+cat(out)
+grepl("[\\[]", out)
+
+cli::ansi_strip(out)
+
+
 # ------------------------- new -------------------------
 
 library(processx)
@@ -49,11 +64,27 @@ uv_exe <- function() {
   fs::path_rel("~/.local/bin/uv")
 }
 
+remove_blur <- function(x) {
+  x_split <- unlist(strsplit(x, "\\[2m"))
+  paste0(x_split, collapse = "[1m")
+}
+
 uv_process <- function(...) {
-  x <- process$new(uv_exe(), c(...),stdout = "|", stderr = "|")
+  x <- process$new(
+    uv_exe(), 
+    c(...),
+    stdout = "|",
+    stderr = "|"
+    )
   while(x$is_alive()) {
-    cat(x$read_error())
-    cat(x$read_output())
+    read_error <- remove_blur(x$read_error())
+    read_output <- remove_blur(x$read_output())
+    if(read_error != "") {
+      cat(read_error)  
+    }
+    if(read_output != "") {
+      cat(read_output) 
+    }
   }
   invisible()
 }
@@ -64,9 +95,15 @@ uv_install <- function(..., python = py_exe()) {
   uv_process(
     "pip", 
     "install",
-    "--python", shQuote(fs::path_rel(python)),
+    "--python", fs::path_rel(python),
     c(...)
   )
 }
 
 uv_install("polars", "jax")
+
+
+uv_install("jax2")
+
+uv_install("numpy")
+
