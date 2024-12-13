@@ -41,10 +41,13 @@ while(x$is_alive()) {
 }
 
 cat("\033[2mAudited \033[1m2 packages\033[0m \033[2min 1ms\033[0m\033[0m\n")
+cat("Audited \033[1m2 packages\033[0m in 1ms\033[0m\033[0m\n")
+
 cat("\033[1mAudited \033[1m2 packages\033[0m \033[1min 1ms\033[0m\033[0m\n")
 
 
-
+x <- "\033[2mAudited \033[1m2 packages\033[0m \033[2min 1ms\033[0m\033[0m\n"
+cat(x)
 out <- "\033[2mAudited \033[1m2 packages\033[0m \033[2min 1ms\033[0m\033[0m\n"
 cat(out)
 out_split <- unlist(strsplit(out, "\\[2m"))
@@ -65,8 +68,8 @@ uv_exe <- function() {
 }
 
 remove_blur <- function(x) {
-  x_split <- unlist(strsplit(x, "\\[2m"))
-  paste0(x_split, collapse = "[1m")
+  x_split <- unlist(strsplit(x, "\033\\[2m"))
+  paste0(x_split, collapse = "")
 }
 
 uv_process <- function(...) {
@@ -89,7 +92,6 @@ uv_process <- function(...) {
   invisible()
 }
 
-uv_process("venv")
 use_virtualenv(here::here(".venv"))
 uv_install <- function(..., python = py_exe()) {
   uv_process(
@@ -100,6 +102,9 @@ uv_install <- function(..., python = py_exe()) {
   )
 }
 
+uv_process("venv")
+
+
 uv_install("polars", "jax")
 
 
@@ -107,3 +112,8 @@ uv_install("jax2")
 
 uv_install("numpy")
 
+
+uv_process("venv")
+use_virtualenv(here::here(".venv"))
+uv_install("polars", "jax")
+uv_install("notreal")
