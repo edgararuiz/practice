@@ -119,11 +119,25 @@ uv_install("polars", "jax")
 uv_install("notreal")
 
 source("uv/uv-funs.R")
-uv_envs <- fs::path_expand(path(rappdirs::user_data_dir(), "uv-envs"))
-uv_path <- path(uv_envs, paste0("r-", hash(fs::path_expand(here::here()))))
-uv_process(uv_path, "--allow-existing", "--python", "3.10")
+uv_envs <- fs::path_expand(fs::path(rappdirs::user_data_dir(), "uv-envs"))
+uv_path <- fs::path(uv_envs, paste0("r-", rlang::hash(fs::path_expand(here::here()))))
+uv_process("venv", uv_path, "--allow-existing", "--python", "3.10")
 
 use_virtualenv(uv_path)
 
 uv_install("polars")
+
+packages <- c(
+  "databricks-connect",
+  "pandas!=2.1.0", # deprecation warnings
+  "PyArrow",
+  "grpcio",
+  "google-api-python-client",
+  "grpcio_status"
+)
+uv_install(packages)
+
+
+path_common(c(path_expand(rappdirs::user_data_dir()), py_exe()))
+py_exe()
 

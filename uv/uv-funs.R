@@ -1,13 +1,20 @@
 library(processx)
 library(reticulate)
+library(fs)
 
 uv_exe <- function() {
   fs::path_rel("~/.local/bin/uv")
 }
 
-remove_blur <- function(x) {
+clean_output <- function(x) {
+  # ANSI cleanup, remove blurriness
   x_split <- unlist(strsplit(x, "\033\\[2m"))
-  paste0(x_split, collapse = "")
+  x <- paste0(x_split, collapse = "")
+  if(grepl(path_expand(rappdirs::user_data_dir()), x)) {
+    
+  }
+  x <- sub(path_expand(rappdirs::user_data_dir()), "[USER DATA DIR]", x)
+  x
 }
 
 uv_process <- function(...) {
@@ -18,8 +25,8 @@ uv_process <- function(...) {
     stderr = "|"
   )
   while(x$is_alive()) {
-    read_error <- remove_blur(x$read_error())
-    read_output <- remove_blur(x$read_output())
+    read_error <- clean_output(x$read_error())
+    read_output <- clean_output(x$read_output())
     if(read_error != "") {
       cat(read_error)  
     }
