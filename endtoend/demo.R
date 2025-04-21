@@ -161,3 +161,40 @@ tbl_lending |>
   spark_apply(lending_predict) |> 
   dbplot::dbplot_histogram(`_pred`)
 
+
+library(tidymodels)
+
+tbl_selected <- tbl_result |> 
+  select(
+    paid_total, 
+    paid_late_fees, annual_income,
+    accounts_opened_24m, num_satisfactory_accounts,
+    current_accounts_delinq, current_installment_accounts
+  ) |> 
+  mutate(match = 1) |> 
+  head(1)
+
+
+tbl_paid_int <- tibble(paid_interest = paid_interest <- c(100, c(1:8) * 500), match = 1)
+
+
+board <- board_databricks("/Volumes/sol_eng_demo_nickp/end-to-end/r-models")
+model <- pin_read(board, "lending-model-linear")
+
+full_table <- tbl_paid_int |> 
+  full_join(tbl_selected, by = "match") |> 
+  mutate(annual_income = 15000)
+
+preds <- predict(model, full_table)
+
+full_table |> 
+  bind_cols(preds) |> 
+  ggplot(aes(x = paid_interest, `.pred`)) +
+  geom_line(color = "#ddd") +
+  geom_text(aes(label = format(.pred, digits = 4)), nudge_y = 0.5, size = 3) +
+  theme_minimal() +
+  scale_y_continuous(limits = c(0, 35)) +
+  theme(panel.grid = element_blank()) 
+  
+
+
