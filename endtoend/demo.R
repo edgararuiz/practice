@@ -50,7 +50,7 @@ library(sparklyr)
 library(dplyr)
 library(pins)
 
-sc <- spark_connect(method = "databricks_connect", version = "16.3")
+sc <- spark_connect(method = "databricks_connect", version = "15.4")
 
 tbl_lending <- tbl(sc, I("sol_eng_demo_nickp.`end-to-end`.loans_full_schema"))
 
@@ -103,6 +103,14 @@ lending_predict <- function(local_lending) {
   library(tidymodels)
   library(tidyverse)
   library(pins)
+  library(reticulate)
+  db <- import("databricks.sdk")
+  w <- db$WorkspaceClient()
+  db_host <- w$dbutils$secrets$get("edgar", "db_host")
+  db_token <- w$dbutils$secrets$get("edgar", "db_token")
+  Sys.setenv("DATABRICKS_HOST" = db_host)
+  Sys.setenv("DATABRICKS_TOKEN" = db_token)
+  board <- board_databricks("/Volumes/sol_eng_demo_nickp/end-to-end/r-models")
   model <- pin_read(board, "lending-model-linear")
   preds <- predict(model, local_lending)
   local_lending |> 
@@ -113,7 +121,15 @@ lending_predict(local_lending)
 
 #------------------------------------ prediction -----------------------------
 
-sc <- spark_connect(method = "databricks_connect", version = "16.3")
+pak::pak("mlverse/pysparklyr")
+
+library(tidymodels)
+library(sparklyr)
+library(dplyr)
+library(pins)
+
+sc <- spark_connect(method = "databricks_connect")
+
 
 tbl_lending <- tbl(sc, I("sol_eng_demo_nickp.`end-to-end`.loans_full_schema"))
 
@@ -124,6 +140,17 @@ model <- pin_read(board, "lending-model-linear")
 tbl_lending |> 
   head(10) |> 
   spark_apply(lending_predict)
+
+
+
+pak::pak("brickster")
+library(brickster)
+#brickster::db_secrets_scope_create("edgar")
+db_secrets_scope_list_all()
+db_secrets_put("edgar", "db_host", Sys.getenv("DATABRICKS_HOST"))
+db_secrets_put("edgar", "db_token", Sys.getenv("DATABRICKS_TOKEN"))
+
+library(httr2)
 
 
 
