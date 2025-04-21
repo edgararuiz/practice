@@ -12,7 +12,9 @@ lend_test <- testing(train_test_split)
 
 red_rec_obj <- recipe(interest_rate ~ ., data = lend_train) |>
   step_mutate(homeownership = factor(homeownership, levels = c("MORTGAGE", "RENT", "OWN"))) |> 
-  step_rm(emp_title, state, state, application_type, verified_income, verification_income_joint, loan_purpose, application_type, grade, sub_grade, issue_month, loan_status, initial_listing_status, disbursement_method) |> 
+  step_rm(emp_title, state, state, application_type, verified_income, 
+          verification_income_joint, loan_purpose, application_type, grade, sub_grade,
+          issue_month, loan_status, initial_listing_status, disbursement_method) |> 
   step_zv(all_predictors()) |>   
   step_integer(homeownership) |> 
   step_normalize(all_numeric_predictors()) |>
@@ -61,27 +63,21 @@ local_lending <- tbl_lending |>
 
 set.seed(1234)
 
-train_test_split <- initial_split(local_lending)
+clean_lending <- local_lending |> 
+  select(
+    interest_rate, paid_total, 
+    paid_interest, paid_late_fees, annual_income,
+    accounts_opened_24m, num_satisfactory_accounts,
+    current_accounts_delinq, current_installment_accounts
+    ) 
+
+train_test_split <- initial_split(clean_lending)
 lend_train <- training(train_test_split)
 lend_test <- testing(train_test_split)
 
 red_rec_obj <- recipe(interest_rate ~ ., data = lend_train) |>
-  step_mutate(
-    homeownership = factor(homeownership, levels = c("MORTGAGE", "RENT", "OWN")),
-    annual_income_joint = as.numeric(annual_income_joint),
-    debt_to_income_joint = as.numeric(debt_to_income_joint),
-    months_since_last_delinq = as.numeric(months_since_last_delinq),
-    emp_length = as.numeric(emp_length)
-    ) |> 
-  step_rm(
-    emp_title, state, state, application_type, verified_income,
-    verification_income_joint, loan_purpose, application_type, grade, sub_grade,
-    issue_month, loan_status, initial_listing_status, disbursement_method,
-    months_since_90d_late, months_since_last_credit_inquiry, public_record_bankrupt,
-    paid_principal, debt_to_income
-    ) |> 
   step_zv(all_predictors()) |>   
-  step_integer(homeownership) |> 
+  step_filter_missing(all_numeric_predictors()) |> 
   step_normalize(all_numeric_predictors()) |>
   step_impute_mean(all_numeric_predictors())
 
@@ -96,15 +92,20 @@ lend_linear_fit <- lend_linear_wflow |>
 
 lend_linear_fit
 
+predict(lend_linear_fit, lend_test)  |> 
+  ggplot() +
+  geom_histogram(aes(.pred))
+
+predict(lend_linear_fit, local_lending) |> 
+  ggplot() +
+  geom_histogram(aes(.pred))
+
+
 board <- board_databricks("/Volumes/sol_eng_demo_nickp/end-to-end/r-models")
 pin_write(board, lend_linear_fit, "lending-model-linear")
 
-pin_download(board, "lending-model-linear")
-
 meta <- pin_meta(board, "lending-model-linear")
-meta_dir <- meta$local$dir
-meta_file <- meta$file
-pin_fetch(board, "lending-model-linear")
+
 url_pin <- paste(board$folder_url, "lending-model-linear", meta$local$version, meta$file, sep = "/")
 url_pin
 
@@ -112,7 +113,7 @@ lending_predict <- function(local_lending) {
   library(tidymodels)
   library(tidyverse)
   library(pins)
-  url_pin <- "/Volumes/sol_eng_demo_nickp/end-to-end/r-models/lending-model-linear/20250420T213446Z-5067f/lending-model-linear.rds"
+  url_pin <- "/Volumes/sol_eng_demo_nickp/end-to-end/r-models/lending-model-linear/20250421T150450Z-321f3/lending-model-linear.rds"
   if(file.exists(url_pin)) {
     model <- readRDS(url_pin)  
   } else {
@@ -121,8 +122,7 @@ lending_predict <- function(local_lending) {
   }
   preds <- predict(model, local_lending)
   local_lending |> 
-    bind_cols(preds) |> 
-    select(interest_rate, .pred)
+    bind_cols(preds)
 }
 lending_predict(local_lending)
 
@@ -137,16 +137,27 @@ library(pins)
 
 sc <- spark_connect(method = "databricks_connect")
 
-
-columns <- "interest_rate double, _pred double"
-
 tbl_lending <- tbl(sc, I("sol_eng_demo_nickp.`end-to-end`.loans_full_schema"))
 
 board <- board_databricks("/Volumes/sol_eng_demo_nickp/end-to-end/r-models")
 
 model <- pin_read(board, "lending-model-linear")
 
+tbl_result <- tbl_lending |> 
+  head(100) |> 
+  spark_apply(lending_predict) |> 
+  collect()
+
+tbl_result |> 
+  ggplot() +
+    geom_histogram(aes(x = `_pred`), binwidth = 10)
+
+tbl_result |> 
+  ggplot() +
+  geom_histogram(aes(x = interest_rate), binwidth = 10)
+
+
 tbl_lending |> 
-  head(10) |> 
-  spark_apply(lending_predict, columns = columns)
+  spark_apply(lending_predict) |> 
+  dbplot::dbplot_histogram(`_pred`)
 
