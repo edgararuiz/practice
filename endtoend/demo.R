@@ -99,23 +99,16 @@ lend_linear_fit
 board <- board_databricks("/Volumes/sol_eng_demo_nickp/end-to-end/r-models")
 pin_write(board, lend_linear_fit, "lending-model-linear")
 
+pin_download(board, "lending-model-linear")
+
 lending_predict <- function(local_lending) {
   library(tidymodels)
   library(tidyverse)
-  library(pins)
-  library(reticulate)
-  db <- import("databricks.sdk")
-  w <- db$WorkspaceClient()
-  db_host <- w$dbutils$secrets$get("edgar", "db_host")
-  db_token <- w$dbutils$secrets$get("edgar", "db_token")
-  Sys.setenv("DATABRICKS_HOST" = db_host)
-  Sys.setenv("DATABRICKS_TOKEN" = db_token)
-  board <- board_databricks("/Volumes/sol_eng_demo_nickp/end-to-end/r-models")
-  model <- pin_read(board, "lending-model-linear")
+  model <- readRDS("/Volumes/sol_eng_demo_nickp/end-to-end/r-models/lending-model-linear/20250420T213446Z-5067f/lending-model-linear.rds")
   preds <- predict(model, local_lending)
   local_lending |> 
     bind_cols(preds) |> 
-    select(interest_rate, .pred, everything())
+    select(interest_rate, .pred)
 }
 lending_predict(local_lending)
 
@@ -131,6 +124,8 @@ library(pins)
 sc <- spark_connect(method = "databricks_connect")
 
 
+columns <- "interest_rate double, _pred double"
+
 tbl_lending <- tbl(sc, I("sol_eng_demo_nickp.`end-to-end`.loans_full_schema"))
 
 board <- board_databricks("/Volumes/sol_eng_demo_nickp/end-to-end/r-models")
@@ -139,18 +134,5 @@ model <- pin_read(board, "lending-model-linear")
 
 tbl_lending |> 
   head(10) |> 
-  spark_apply(lending_predict)
-
-
-
-pak::pak("brickster")
-library(brickster)
-#brickster::db_secrets_scope_create("edgar")
-db_secrets_scope_list_all()
-db_secrets_put("edgar", "db_host", Sys.getenv("DATABRICKS_HOST"))
-db_secrets_put("edgar", "db_token", Sys.getenv("DATABRICKS_TOKEN"))
-
-library(httr2)
-
-
+  spark_apply(lending_predict, columns = columns)
 
