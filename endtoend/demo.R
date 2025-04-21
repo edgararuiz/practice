@@ -101,10 +101,24 @@ pin_write(board, lend_linear_fit, "lending-model-linear")
 
 pin_download(board, "lending-model-linear")
 
+meta <- pin_meta(board, "lending-model-linear")
+meta_dir <- meta$local$dir
+meta_file <- meta$file
+pin_fetch(board, "lending-model-linear")
+url_pin <- paste(board$folder_url, "lending-model-linear", meta$local$version, meta$file, sep = "/")
+url_pin
+
 lending_predict <- function(local_lending) {
   library(tidymodels)
   library(tidyverse)
-  model <- readRDS("/Volumes/sol_eng_demo_nickp/end-to-end/r-models/lending-model-linear/20250420T213446Z-5067f/lending-model-linear.rds")
+  library(pins)
+  url_pin <- "/Volumes/sol_eng_demo_nickp/end-to-end/r-models/lending-model-linear/20250420T213446Z-5067f/lending-model-linear.rds"
+  if(file.exists(url_pin)) {
+    model <- readRDS(url_pin)  
+  } else {
+    board <- board_databricks("/Volumes/sol_eng_demo_nickp/end-to-end/r-models")
+    model <- pin_read(board, "lending-model-linear")
+  }
   preds <- predict(model, local_lending)
   local_lending |> 
     bind_cols(preds) |> 
