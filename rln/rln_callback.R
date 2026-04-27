@@ -10,13 +10,18 @@ library(keras3)
 #' regularization coefficients (lambdas) during training rather than using a
 #' fixed global regularization strength.
 #'
-#' @param layer_index  Integer index of the layer to regularize (1-based, excluding
-#'                     InputLayer). Defaults to 1 (first hidden layer).
-#' @param norm         Regularization norm: 1 (L1) or 2 (L2). L1 recommended.
-#' @param avg_reg      Mean regularization coefficient (Theta in the paper).
-#'                     Operates in log scale, so -7.5 ~ exp(-7.5) ≈ 0.00055.
-#' @param learning_rate  Learning rate for lambda updates (nu in the paper).
-#'                       Large values (1e4–1e6) work best due to log-scale updates.
+#' @param layer_index     Integer index of the layer to regularize (1-based,
+#'                        excluding InputLayer). Defaults to 1 (first hidden layer).
+#' @param norm            Regularization norm: 1 (L1) or 2 (L2). L1 recommended.
+#' @param avg_reg         Mean regularization coefficient (Theta in the paper).
+#'                        Operates in log scale, so -7.5 ~ exp(-7.5) ≈ 0.00055.
+#' @param learning_rate   Learning rate for lambda updates (nu in the paper).
+#'                        Large values (1e4-1e6) work best due to log-scale updates.
+#' @param checkpoint_dir  Optional path to a directory for saving lambda state after
+#'                        each epoch. Files are named rln_state_epoch_NNN.rds and
+#'                        paired with model weight checkpoints of the same epoch.
+#'                        On training start, the latest state file found is restored
+#'                        automatically to allow resuming interrupted runs.
 RLNCallback <- Callback(
   classname = "RLNCallback",
 
@@ -24,13 +29,15 @@ RLNCallback <- Callback(
     layer_index = 1L,
     norm = 1L,
     avg_reg = -7.5,
-    learning_rate = 6e5
+    learning_rate = 6e5,
+    checkpoint_dir = NULL
   ) {
     stopifnot("Only L1 and L2 norms are supported" = norm %in% c(1, 2))
     private$layer_index <- as.integer(layer_index) + 1L # +1 to skip InputLayer
     private$norm <- as.integer(norm)
     private$avg_reg <- avg_reg
     private$lr <- learning_rate
+    private$checkpoint_dir <- checkpoint_dir
     private$kernel <- NULL
     private$weights <- NULL
     private$prev_weights <- NULL
@@ -41,11 +48,52 @@ RLNCallback <- Callback(
   on_train_begin = function(logs = NULL) {
     private$kernel <- self$model$layers[[private$layer_index]]$kernel
     private$update_values()
-    private$lambdas <- matrix(
-      private$avg_reg,
-      nrow = nrow(private$weights),
-      ncol = ncol(private$weights)
-    )
+
+    # Restore lambda state from the latest checkpoint, or initialise fresh
+    restored <- FALSE
+    if (!is.null(private$checkpoint_dir)) {
+      state_files <- list.files(
+        private$checkpoint_dir,
+        pattern = "^rln_state_epoch_\\d{3}\\.rds$",
+        full.names = TRUE
+      )
+      if (length(state_files) > 0) {
+        epochs <- as.integer(regmatches(
+          basename(state_files),
+          regexpr("\\d{3}", basename(state_files))
+        ))
+        latest <- state_files[which.max(epochs)]
+        state <- readRDS(latest)
+        private$lambdas <- state$lambdas
+        private$prev_regularization <- state$prev_regularization
+        message(sprintf("RLN: restored lambda state from %s", basename(latest)))
+        restored <- TRUE
+      }
+    }
+
+    if (!restored) {
+      private$lambdas <- matrix(
+        private$avg_reg,
+        nrow = nrow(private$weights),
+        ncol = ncol(private$weights)
+      )
+    }
+  },
+
+  on_epoch_end = function(epoch, logs = NULL) {
+    if (!is.null(private$checkpoint_dir)) {
+      dir.create(private$checkpoint_dir, showWarnings = FALSE, recursive = TRUE)
+      saveRDS(
+        list(
+          lambdas = private$lambdas,
+          prev_regularization = private$prev_regularization
+        ),
+        file.path(
+          private$checkpoint_dir,
+          sprintf("rln_state_epoch_%03d.rds", epoch)
+        )
+      )
+    }
   },
 
   on_batch_end = function(batch, logs = NULL) {
@@ -72,7 +120,7 @@ RLNCallback <- Callback(
     # Clip lambdas to prevent weight update overflow
     ratio <- private$weights / norms_derivative
     max_lambdas <- log(abs(ratio))
-    max_lambdas[!is.finite(max_lambdas)] <- Inf # NaN → no clipping (equiv. fillna(inf))
+    max_lambdas[!is.finite(max_lambdas)] <- Inf # NaN -> no clipping (equiv. fillna(inf))
     private$lambdas <- pmin(private$lambdas, max_lambdas)
 
     # Apply regularization and push updated weights back to the layer
@@ -90,12 +138,13 @@ RLNCallback <- Callback(
     norm = NULL,
     avg_reg = NULL,
     lr = NULL,
+    checkpoint_dir = NULL,
     weights = NULL,
     prev_weights = NULL,
     lambdas = NULL,
     prev_regularization = NULL,
 
-    # Reads current kernel values and stores them transposed (outputs × inputs),
+    # Reads current kernel values and stores them transposed (outputs x inputs),
     # matching the DataFrame(kernel.T) convention in the original Python code.
     update_values = function() {
       private$weights <- t(as.array(private$kernel))
@@ -103,7 +152,7 @@ RLNCallback <- Callback(
   )
 )
 
-# ── Example usage (see keras_tutorial.R) ─────────────────────────────────────
+# -- Example usage (see keras_tutorial.R) -------------------------------------
 #
 # set.seed(42)
 #

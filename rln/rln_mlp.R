@@ -15,10 +15,17 @@ source(file.path(dirname(sys.frame(1)$ofile), "rln_callback.R"))
 #' @param norm          Regularization norm: 1 (L1) or 2 (L2).
 #' @param avg_reg       Target mean of log-scale lambda coefficients (Theta).
 #' @param learning_rate Step size for lambda updates (nu). Large values (1e4–1e6) typical.
-#' @param epochs        Number of training epochs.
-#' @param activation    Hidden layer activation function.
-#' @param seed          Random seed for reproducibility.
-#' @param ...           Additional args passed to keras3::fit() or keras3::compile().
+#' @param epochs          Number of training epochs.
+#' @param activation      Hidden layer activation function.
+#' @param seed            Random seed for reproducibility.
+#' @param checkpoint_dir  Optional path to a directory for checkpointing. When
+#'                        supplied, model weights are saved after every epoch as
+#'                        model_epoch_NNN.keras, and the RLN lambda state is saved
+#'                        as rln_state_epoch_NNN.rds. Both files share the same
+#'                        epoch number so they can be restored together. On the
+#'                        next training run, the latest lambda state is restored
+#'                        automatically.
+#' @param ...             Additional args passed to keras3::fit() or keras3::compile().
 rln_mlp <- function(
   x,
   y,
@@ -29,6 +36,7 @@ rln_mlp <- function(
   epochs = 20L,
   activation = "relu",
   seed = sample.int(10^5, size = 1),
+  checkpoint_dir = NULL,
   ...
 ) {
   keras3::set_random_seed(seed)
@@ -119,11 +127,28 @@ rln_mlp <- function(
     layer_index = 1L,
     norm = norm,
     avg_reg = avg_reg,
-    learning_rate = learning_rate
+    learning_rate = learning_rate,
+    checkpoint_dir = checkpoint_dir
   )
 
-  # Inject RLN alongside any user-supplied callbacks
-  fit_args$callbacks <- c(list(rln), fit_args$callbacks)
+  # Model weight checkpoint paired with RLN lambda state (same epoch numbering)
+  callbacks <- list(rln)
+  if (!is.null(checkpoint_dir)) {
+    dir.create(checkpoint_dir, showWarnings = FALSE, recursive = TRUE)
+    callbacks <- c(
+      callbacks,
+      list(
+        callback_model_checkpoint(
+          filepath = file.path(checkpoint_dir, "model_epoch_{epoch:03d}.keras"),
+          save_best_only = FALSE,
+          verbose = 1L
+        )
+      )
+    )
+  }
+
+  # Inject all callbacks alongside any user-supplied ones
+  fit_args$callbacks <- c(callbacks, fit_args$callbacks)
 
   # Fit
   history <- do.call(
