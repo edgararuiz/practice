@@ -100,11 +100,12 @@ rln_mlp <- function(
   fit_args$callbacks <- c(list(rln), fit_args$callbacks)
 
   # Fit
-  do.call(
+  history <- do.call(
     keras3::fit,
     c(list(object = model, x = x, y = y_mat, epochs = epochs), fit_args)
   )
 
   model$y_names <- colnames(y_mat)
+  model$history <- history
   model
 }
