@@ -1,0 +1,63 @@
+---
+title: "Parsnip keras3 vs RLN: Approach Comparison"
+format: html
+---
+
+## Architecture
+
+| | parsnip `keras3.R` | RLN (`rln_callback.R`) |
+|---|---|---|
+| Layers | One hidden layer only | Architecture-agnostic — `RLNCallback` is a callback that takes any single layer; the tutorial happens to use a geometric series of layers |
+| Regularization coverage | Applied globally across all weights | Applied to **one named layer** at a time; the tutorial targets only the first layer for efficiency |
+| Regularization type | Static L2 weight decay **or** dropout (your choice, not both) | Per-weight adaptive strength — each weight learns its own regularization coefficient (lambda); the norm type, L1 or L2, is a fixed hyperparameter |
+| How regularization is set | Fixed scalar `penalty` baked into `regularizer_l2()` at build time | A `lambdas` matrix (one value per weight in that layer) is updated every batch via gradient descent in log-scale |
+
+## Design Pattern
+
+- **parsnip's version** is a self-contained training function (`keras3_mlp(x, y, ...)`). It builds, compiles, and fits the model in one call, returning a fitted model. It is a tidymodels engine — stateless from the caller's perspective.
+- **The RLN version** is a Keras callback (`RLNCallback`). It attaches to any model and modifies weight updates during training. The model itself is built separately; RLN only intercepts `on_batch_end`.
+
+## Optimizer
+
+- parsnip: Adam (default), overridable via `...`
+- RLN tutorial: RMSprop — the paper found this worked better with the RLN update, since RMSprop's adaptive learning rates interact differently with the manual weight edits than Adam does
+
+## RLN Per-Batch Update
+
+The key idea: after the optimizer moves the weights, RLN applies a second per-weight nudge whose strength is itself learned.
+
+```{mermaid}
+flowchart TD
+    A([Optimizer updates W]) --> B[Read W from kernel]
+    B --> C["ΔW = W − W_prev"]
+    C --> D{First batch?}
+
+    D -- No --> E["Update λ\nλ ← λ − lr · ΔW ⊙ R_prev"]
+    E --> F["Project\nλ += Θ − mean(λ)\nkeeps mean pinned to Θ"]
+    F --> G
+
+    D -- Yes --> G["Clip λ\nλ = min(λ, log|W / ∇norm|)\nprevents weight sign flip"]
+
+    G --> H["Regularization term\nR = ∇norm(W) ⊙ exp(λ)"]
+    H --> I["Apply\nW ← W − R"]
+    I --> J([Write W back to kernel])
+    J --> K([Store R as R_prev])
+```
+
+**Key symbols**
+
+| Symbol | Meaning |
+|---|---|
+| `W` | Weight matrix of the target layer (transposed to outputs × inputs) |
+| `λ` | Lambda matrix — one learned log-scale coefficient per weight |
+| `Θ` | `avg_reg` — the target mean of all lambdas (e.g. −10) |
+| `lr` | `learning_rate` — step size for lambda updates (e.g. 1e6) |
+| `∇norm(W)` | `sign(W)` for L1, `2W` for L2 |
+| `⊙` | Element-wise multiplication |
+
+The clipping step is the numerical safety valve: it ensures `exp(λ)` never exceeds `|W|`, so the regularization term cannot overshoot and flip a weight's sign.
+
+## Scope
+
+- parsnip's version is deliberately simple — single hidden layer, binary/multiclass/regression handled, designed to slot into tidymodels workflows with `tune()`-able hyperparameters.
+- RLN is a research technique meant to replace (or augment) any regularization scheme on any architecture; it is not tied to a fixed structure.
