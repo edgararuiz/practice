@@ -68,15 +68,17 @@ build_model <- function(layers = 4L, l1 = 0) {
 test_model <- function(model_fn, label, num_repeats = 10L, callback_fn = NULL) {
   results <- numeric(num_repeats)
   for (i in seq_len(num_repeats)) {
-    model     <- model_fn()
+    model <- model_fn()
     callbacks <- if (!is.null(callback_fn)) callback_fn(model) else list()
-    model |> fit(
-      x_train, y_train,
-      epochs     = 100L,
-      batch_size = 10L,
-      verbose    = 0L,
-      callbacks  = callbacks
-    )
+    model |>
+      fit(
+        x_train,
+        y_train,
+        epochs = 100L,
+        batch_size = 10L,
+        verbose = 0L,
+        callbacks = callbacks
+      )
     results[i] <- (model |> evaluate(x_test, y_test, verbose = 0L))[["loss"]]
   }
   cat(sprintf("%s: %.2f (%.2f) MSE\n", label, mean(results), sd(results)))
@@ -146,15 +148,15 @@ best_theta <- NULL
 best_lr <- NULL
 
 for (params in rln_grid) {
-  cur_lr    <- 10^params$log_lr
+  cur_lr <- 10^params$log_lr
   cur_theta <- params$theta
   cur_score <- test_model(
-    model_fn    = \() build_model(layers = best_layers),
+    model_fn = \() build_model(layers = best_layers),
     callback_fn = function(m) {
       list(RLNCallback(
-        layer         = m$layers[[2]],  # layers[[1]] is the InputLayer
-        norm          = 1L,
-        avg_reg       = cur_theta,
+        layer_index = 1L,
+        norm = 1L,
+        avg_reg = cur_theta,
         learning_rate = cur_lr
       ))
     },
