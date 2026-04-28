@@ -20,7 +20,7 @@ model <- rln_mlp(
   epochs = 100L,
   batch_size = 10L,
   validation_split = 0.2,
-  norm = 2L
+  norm = 1L
 )
 
 predictions <- predict(model, x_test)
