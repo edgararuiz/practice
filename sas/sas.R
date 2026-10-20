@@ -51,19 +51,67 @@ sas_stmt <- function(keyword, ..., options = NULL) {
   )
 }
 
-format.sas_stmt <- function(x, ...) {
-  out <- x$keyword
+# ---- Syntax color ----------------------------------------------------------
+
+# Colors for each kind of token. `print()` uses them; `format()` and
+# `as.character()` return plain text, so the code is safe to write to a file.
+sas_colors <- list(
+  proc    = function(x) cli::style_bold(cli::col_blue(x)),
+  keyword = cli::col_blue,
+  macro   = cli::col_magenta,
+  string  = cli::col_green,
+  number  = cli::col_yellow,
+  slash   = cli::col_grey
+)
+
+# Apply a color only when `color` is TRUE.
+sas_paint <- function(x, type, color) {
+  if (color) sas_colors[[type]](x) else x
+}
+
+# Color macro variables, quoted strings, and numbers in free text.
+# All three are matched in one pass, so color codes added for one token
+# are never matched again by another pattern.
+sas_paint_text <- function(x, color) {
+  if (!color || !nzchar(x)) {
+    return(x)
+  }
+  pattern <- paste(
+    "'[^']*'|\"[^\"]*\"",           # quoted strings
+    "&[A-Za-z_][A-Za-z0-9_]*\\.?",  # macro variables
+    "\\b[0-9]+(\\.[0-9]+)?\\b",    # numbers
+    sep = "|"
+  )
+  m <- gregexpr(pattern, x, perl = TRUE)
+  tokens <- regmatches(x, m)[[1]]
+  if (length(tokens) == 0) {
+    return(x)
+  }
+  type <- ifelse(
+    grepl("^['\"]", tokens), "string",
+    ifelse(startsWith(tokens, "&"), "macro", "number")
+  )
+  regmatches(x, m) <- list(unname(mapply(sas_paint, tokens, type, color)))
+  x
+}
+
+format.sas_stmt <- function(x, color = FALSE, ...) {
+  out <- sas_paint(x$keyword, "keyword", color)
   if (nzchar(x$args)) {
-    out <- paste(out, x$args)
+    out <- paste(out, sas_paint_text(x$args, color))
   }
   if (nzchar(x$options)) {
-    out <- paste(out, "/", x$options)
+    out <- paste(
+      out,
+      sas_paint("/", "slash", color),
+      sas_paint_text(x$options, color)
+    )
   }
   paste0(out, ";")
 }
 
 print.sas_stmt <- function(x, ...) {
-  cat(format(x), "\n", sep = "")
+  cat(format(x, color = TRUE), "\n", sep = "")
   invisible(x)
 }
 
@@ -87,13 +135,19 @@ sas_proc <- function(name, ..., data = "&dsn", options = NULL) {
   )
 }
 
-format.sas_proc <- function(x, indent = "  ", ...) {
-  head <- paste("proc", x$name)
+format.sas_proc <- function(x, indent = "  ", color = FALSE, ...) {
+  head <- paste(
+    sas_paint("proc", "proc", color),
+    sas_paint(x$name, "proc", color)
+  )
   if (!is.null(x$data) && nzchar(x$data)) {
-    head <- paste0(head, " data=", x$data)
+    head <- paste0(
+      head, " ", sas_paint("data", "keyword", color), "=",
+      sas_paint_text(x$data, color)
+    )
   }
   if (nzchar(x$options)) {
-    head <- paste(head, x$options)
+    head <- paste(head, sas_paint_text(x$options, color))
   }
   head <- paste0(head, ";")
 
@@ -107,20 +161,23 @@ format.sas_proc <- function(x, indent = "  ", ...) {
     numeric(1)
   )
   # order() keeps the given order when ranks are equal.
-  body <- vapply(x$statements[order(rank)], format, character(1))
+  body <- vapply(
+    x$statements[order(rank)], format, character(1), color = color
+  )
 
-  end <- if (x$name %in% sas_quit_procs) "quit;" else "run;"
+  end <- if (x$name %in% sas_quit_procs) "quit" else "run"
+  end <- paste0(sas_paint(end, "proc", color), ";")
 
   paste(c(head, paste0(indent, body), end), collapse = "\n")
 }
 
 print.sas_proc <- function(x, ...) {
-  cat(format(x, ...), "\n", sep = "")
+  cat(format(x, color = TRUE, ...), "\n", sep = "")
   invisible(x)
 }
 
 as.character.sas_proc <- function(x, ...) {
-  format(x, ...)
+  format(x, color = FALSE, ...)
 }
 
 # ---- Examples ---------------------------------------------------------------
